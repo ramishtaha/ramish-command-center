@@ -48,23 +48,113 @@ Body: { "field": "fajr", "value": true, "date": "YYYY-MM-DD" }
 ### Available fields
 `fajr`, `dhuhr`, `asr`, `maghrib`, `isha`, `jumuah`, `tahajjud`, `duha`, `survival_layer`, `morning_reading`, `targets_set`, `house_task`, `mma`, `post_workout_meal`, `shower`, `dsa_done`, `spring_boot_done`, `system_design_done`, `revision_done`, `evening_reset`, `haldi_doodh`, `sleep_on_wudu`, `ghusl_rule`, `khalwah_shield`, `night_protocol`, `phone_out_of_bedroom`, `lower_gaze`, `fasting`, `no_new_riba`, `block1_done`, `block2_done`, `block3_done`, `block4_done`
 
-## 🛠️ Local Development
+## 🚀 Deploy
+
+### Prerequisites
+- Heroku CLI installed: `https://devcenter.heroku.com/articles/heroku-cli`
+- Node.js 22+ installed locally
+
+### Step 1: Create the Heroku app (EU region, latest stack)
 ```bash
-npm install
-createdb ramish_command_center  # or use DATABASE_URL
-node server.js
+heroku create ramish-command-center --region eu
+heroku stack:set heroku-26 -a ramish-command-center
 ```
 
-## 📦 Deploy
+### Step 2: Add PostgreSQL database
 ```bash
+heroku addons:create heroku-postgresql:essential-0 -a ramish-command-center
+```
+This auto-sets the `DATABASE_URL` config var. Wait for provisioning:
+```bash
+heroku addons:info heroku-postgresql -a ramish-command-center
+```
+
+### Step 3: Set environment variables
+```bash
+heroku config:set \
+  SESSION_SECRET="$(openssl rand -hex 32)" \
+  API_KEY="hermes-sync-ramish-2026" \
+  -a ramish-command-center
+```
+
+### Step 4: Deploy
+```bash
+# First time: set the git remote
 heroku git:remote -a ramish-command-center
+
+# Deploy
 git push heroku master
 ```
 
+### Step 5: Scale the dyno
+```bash
+heroku ps:scale web=1 -a ramish-command-center
+```
+
+### Step 6: Verify
+```bash
+# Check logs
+heroku logs -a ramish-command-center -n 20
+
+# Test the login page
+curl -s https://<your-app-name>.heroku.com/login
+
+# Test the sync API
+curl -s -H "x-api-key: hermes-sync-ramish-2026" https://<your-app-name>.heroku.com/api/sync
+```
+
+### Default login
+- **Username:** `ramish`
+- **Password:** `ramish2026`
+- The default user is created automatically on first boot. **Change the password after first login.**
+
+### Useful Heroku commands
+```bash
+# View app info
+heroku apps:info -a ramish-command-center
+
+# View config vars
+heroku config -a ramish-command-center
+
+# View logs (live)
+heroku logs -a ramish-command-center -t
+
+# Restart the app
+heroku ps:restart -a ramish-command-center
+
+# Open the app in browser
+heroku open -a ramish-command-center
+
+# Destroy the app (nuclear option)
+heroku destroy -a ramish-command-center --confirm ramish-command-center
+```
+
+### Heroku CLI Authentication
+To deploy from a new machine, authenticate with your Heroku API key:
+```bash
+export HEROKU_API_KEY=HRKU-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+# Or: heroku login
+```
+
+Get your API key from: https://dashboard.heroku.com/account → Account Settings → API Keys
+
 ## 🔐 Environment Variables
-- `DATABASE_URL` — PostgreSQL connection string (auto-set by Heroku Postgres)
-- `SESSION_SECRET` — Express session secret
-- `API_KEY` — API key for external sync
+See `.env.example` for a template with dummy values. Copy to `.env` for local development:
+```bash
+cp .env.example .env
+```
+
+On Heroku, set config vars (DO NOT commit .env to git):
+```bash
+heroku config:set SESSION_SECRET="..." API_KEY="..." -a ramish-command-center
+```
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string (auto-set by Heroku Postgres) | `postgresql://user:pass@host:5432/db` |
+| `SESSION_SECRET` | Express session secret (random string) | `openssl rand -hex 32` |
+| `API_KEY` | API key for Hermes sync endpoint | `hermes-sync-ramish-2026` |
+| `HEROKU_API_KEY` | Heroku CLI API key (for deployment, not the app) | `HRKU-XXXX...` |
 
 ## 📁 Project Structure
 ```
