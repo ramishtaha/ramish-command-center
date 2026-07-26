@@ -228,7 +228,7 @@ app.get('/api/sync', requireApiKey, async (req, res) => {
     const progress = await pool.query('SELECT * FROM daily_progress WHERE date = $1', [date]);
     const dsaLog = await pool.query('SELECT * FROM dsa_log WHERE date = $1 ORDER BY created_at DESC', [date]);
     const journal = await pool.query('SELECT * FROM journal_entries WHERE date = $1', [date]);
-    const reviews = await pool.query('SELECT * FROM weekly_reviews ORDER BY week_number DESC LIMIT 4', [date]);
+    const reviews = await pool.query('SELECT * FROM weekly_reviews ORDER BY week_number DESC LIMIT 4');
     
     res.json({
       date,
