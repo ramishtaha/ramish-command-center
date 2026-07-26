@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Command Center · Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="ll-emoji">⚔️</div>
+        <h1>Bismillah</h1>
+        <p>Ramish's Command Center</p>
+      </div>
+
+      <% if (typeof error !== 'undefined' && error) { %>
+        <div class="toast show error" style="position:static;transform:none;margin-bottom:16px;">
+          <%= error %>
+        </div>
+      <% } %>
+
+      <form class="login-form" method="POST" action="/login">
+        <div class="field">
+          <label for="username">Username</label>
+          <input class="input" type="text" id="username" name="username"
+                 placeholder="your username" autocomplete="username" required autofocus />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input class="input" type="password" id="password" name="password"
+                 placeholder="••••••••" autocomplete="current-password" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">
+          Enter the Arena →
+        </button>
+      </form>
+
+      <div class="login-quote">
+        "The best of people are those most beneficial to people." — Prophet ﷺ
+      </div>
+    </div>
+  </div>
+</body>
+</html>

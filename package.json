@@ -1,0 +1,22 @@
+{
+  "name": "ramish-command-center",
+  "version": "1.0.0",
+  "description": "Personal command center for self-improvement tracking",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.12.0",
+    "ejs": "^3.1.10",
+    "express-session": "^1.18.0",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
