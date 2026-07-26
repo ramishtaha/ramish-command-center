@@ -7,61 +7,82 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <a href="/logout" class="logout-btn">Logout</a>
-  <div class="dashboard">
 
-    <!-- HEADER -->
-    <div class="header">
-      <h1>بِسْمِ اللَّهِ</h1>
-      <div class="date"><%= today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></div>
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="container">
+      <div class="header-top">
+        <div class="greeting">بِسْمِ اللَّهِ, <span class="accent"><%= user.username %></span> ⚔️</div>
+        <a href="/logout" class="logout-link">Logout</a>
+      </div>
+      <div class="date-line"><%= today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></div>
+
       <div class="progress-wrap">
         <div class="progress-label">
           <span>12-Week Journey</span>
-          <span>Day <%= dayNumber %> of 84</span>
+          <span class="pct">Day <%= dayNumber %> of 84</span>
         </div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: <%= Math.min(100, (dayNumber / 84) * 100) %>%"></div>
-        </div>
+        <div class="progress-bar" style="width: <%= Math.min(100, (dayNumber / 84) * 100) %>%"></div>
       </div>
-      <div class="streaks">
-        <div class="streak-badge"><span class="fire">🔥</span> Salah: <span class="count"><%= salahStreak %></span></div>
-        <div class="streak-badge"><span class="fire">🔥</span> DSA: <span class="count"><%= dsaStreak %></span></div>
-        <div class="streak-badge"><span class="fire">🔥</span> Survival: <span class="count"><%= survivalStreak %></span></div>
+
+      <div class="streak-badges header-streaks">
+        <div class="streak-badge salah"><span class="fire">🔥</span> Salah: <%= salahStreak %></div>
+        <div class="streak-badge dsa"><span class="fire">🔥</span> DSA: <%= dsaStreak %></div>
+        <div class="streak-badge survival"><span class="fire">🔥</span> Survival: <%= survivalStreak %></div>
       </div>
     </div>
+  </header>
+
+  <main class="container">
 
     <!-- WEEK STATS -->
     <% if (weekStats && weekStats.total_days > 0) { %>
     <div class="section">
       <div class="section-title"><span class="icon">📊</span> This Week</div>
       <div class="week-stats">
-        <div class="week-stat"><div class="num" style="color: var(--emerald)"><%= weekStats.salah_complete_days || 0 %>/7</div><div class="label">Salah Complete</div></div>
-        <div class="week-stat"><div class="num" style="color: var(--gold)"><%= weekStats.dsa_days || 0 %>/7</div><div class="label">DSA Days</div></div>
-        <div class="week-stat"><div class="num" style="color: var(--blue)"><%= weekStats.mma_days || 0 %>/7</div><div class="label">MMA Days</div></div>
-        <div class="week-stat"><div class="num" style="color: var(--purple)"><%= weekStats.survival_days || 0 %>/7</div><div class="label">Survival Days</div></div>
+        <div class="week-stat"><div class="ws-num" style="color: var(--emerald)"><%= weekStats.salah_complete_days || 0 %>/7</div><div class="ws-label">Salah Complete</div></div>
+        <div class="week-stat"><div class="ws-num" style="color: var(--gold)"><%= weekStats.dsa_days || 0 %>/7</div><div class="ws-label">DSA Days</div></div>
+        <div class="week-stat"><div class="ws-num" style="color: var(--blue)"><%= weekStats.mma_days || 0 %>/7</div><div class="ws-label">MMA Days</div></div>
+        <div class="week-stat"><div class="ws-num" style="color: var(--purple)"><%= weekStats.survival_days || 0 %>/7</div><div class="ws-label">Survival Days</div></div>
       </div>
     </div>
     <% } %>
 
     <!-- SURVIVAL LAYER -->
     <div class="section">
-      <div class="section-title"><span class="icon">⚡</span> Survival Layer <span class="badge">NO PHONE</span></div>
-      <div class="cards-grid">
+      <div class="section-title"><span class="icon">⚡</span> Survival Layer <span class="badge">No Phone</span></div>
+      <div class="grid cols-2">
         <div class="toggle-card <%= todayProgress.survival_layer ? 'checked' : '' %>" data-field="survival_layer">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Alarm off + feet on floor</div><div class="card-time">04:20 AM</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">⏰</span>
+            <span class="tc-label">Alarm off + feet on floor</span>
+            <span class="tc-check">✓</span>
+          </div>
+          <div class="tc-sub">04:20 AM</div>
         </div>
-        <div class="toggle-card" data-field="survival_layer_teeth">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Brush teeth + cold water</div><div class="card-time">04:25 AM</div></div>
+        <div class="toggle-card <%= todayProgress.survival_layer_teeth ? 'checked' : '' %>" data-field="survival_layer_teeth">
+          <div class="tc-head">
+            <span class="tc-icon">🪥</span>
+            <span class="tc-label">Brush teeth + cold water</span>
+            <span class="tc-check">✓</span>
+          </div>
+          <div class="tc-sub">04:25 AM</div>
         </div>
-        <div class="toggle-card" data-field="survival_layer_wudu">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Wudu</div><div class="card-time">04:30 AM</div></div>
+        <div class="toggle-card <%= todayProgress.survival_layer_wudu ? 'checked' : '' %>" data-field="survival_layer_wudu">
+          <div class="tc-head">
+            <span class="tc-icon">💧</span>
+            <span class="tc-label">Wudu</span>
+            <span class="tc-check">✓</span>
+          </div>
+          <div class="tc-sub">04:30 AM</div>
         </div>
-        <div class="toggle-card" data-field="tahajjud">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Tahajjud</div><div class="card-time">04:30 AM</div></div>
+        <div class="toggle-card <%= todayProgress.tahajjud ? 'checked' : '' %>" data-field="tahajjud">
+          <div class="tc-head">
+            <span class="tc-icon">🌙</span>
+            <span class="tc-label">Tahajjud</span>
+            <span class="tc-check">✓</span>
+          </div>
+          <div class="tc-sub">04:30 AM</div>
         </div>
       </div>
     </div>
@@ -82,7 +103,7 @@
           <div class="prayer-icon">🌤️</div>
           <div class="prayer-name">Asr</div>
         </div>
-        <div class="salah-card <%= todayProgress.magrib ? 'checked' : '' %>" data-field="magrib">
+        <div class="salah-card <%= todayProgress.maghrib ? 'checked' : '' %>" data-field="maghrib">
           <div class="prayer-icon">🌆</div>
           <div class="prayer-name">Maghrib</div>
         </div>
@@ -93,35 +114,49 @@
       </div>
       <% const isFriday = today.getDay() === 5; %>
       <% if (isFriday) { %>
-      <div style="margin-top: 10px;">
-        <div class="salah-card <%= todayProgress.jumuah ? 'checked' : '' %>" data-field="jumuah" style="max-width: 200px; margin: 0 auto;">
+      <div class="salah-extra">
+        <div class="salah-card <%= todayProgress.jumuah ? 'checked' : '' %>" data-field="jumuah">
           <div class="prayer-icon">🕌</div>
           <div class="prayer-name">Jumu'ah — Mosque</div>
         </div>
       </div>
       <% } %>
-      <div class="salah-complete-banner" id="salahBanner">🎉 All 5 prayers complete! Mashallah! 🎉</div>
+      <div class="celebrate" id="salahBanner">🎉 All 5 prayers complete! Mashallah! 🎉</div>
     </div>
 
     <!-- PRIME LAYER -->
     <div class="section">
       <div class="section-title"><span class="icon">🧠</span> Prime Layer</div>
-      <div class="cards-grid">
+      <div class="grid cols-2">
         <div class="toggle-card <%= todayProgress.morning_reading ? 'checked' : '' %>" data-field="morning_reading">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Morning reading (20 min)</div><div class="card-time">05:00 AM</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">📖</span>
+            <span class="tc-label">Morning reading (20 min)</span>
+            <span class="tc-check">✓</span>
+          </div>
+          <div class="tc-sub">05:00 AM</div>
         </div>
         <div class="toggle-card <%= todayProgress.targets_set ? 'checked' : '' %>" data-field="targets_set">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">3 non-negotiable targets</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">🎯</span>
+            <span class="tc-label">3 non-negotiable targets</span>
+            <span class="tc-check">✓</span>
+          </div>
         </div>
         <div class="toggle-card <%= todayProgress.house_task ? 'checked' : '' %>" data-field="house_task">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">1 house task</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">🏠</span>
+            <span class="tc-label">1 house task</span>
+            <span class="tc-check">✓</span>
+          </div>
         </div>
         <div class="toggle-card <%= todayProgress.duha ? 'checked' : '' %>" data-field="duha">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Duha (bonus)</div><div class="card-time">09:00 AM</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">✨</span>
+            <span class="tc-label">Duha (bonus)</span>
+            <span class="tc-check">✓</span>
+          </div>
+          <div class="tc-sub">09:00 AM</div>
         </div>
       </div>
     </div>
@@ -129,40 +164,53 @@
     <!-- TRAINING -->
     <div class="section">
       <div class="section-title"><span class="icon">💪</span> Training</div>
-      <div class="cards-grid">
+      <div class="grid cols-2">
         <div class="toggle-card <%= todayProgress.mma ? 'checked' : '' %>" data-field="mma">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">MMA Training</div><div class="card-time">07:00–08:00 AM</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">🥊</span>
+            <span class="tc-label">MMA Training</span>
+            <span class="tc-check">✓</span>
+          </div>
+          <div class="tc-sub">07:00–08:00 AM</div>
         </div>
         <div class="toggle-card <%= todayProgress.post_workout_meal ? 'checked' : '' %>" data-field="post_workout_meal">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Post-workout meal</div><div class="card-time">IMMEDIATELY</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">🍳</span>
+            <span class="tc-label">Post-workout meal</span>
+            <span class="tc-check">✓</span>
+          </div>
+          <div class="tc-sub">Immediately</div>
         </div>
         <div class="toggle-card <%= todayProgress.shower ? 'checked' : '' %>" data-field="shower">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Shower + dressed</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">🚿</span>
+            <span class="tc-label">Shower + dressed</span>
+            <span class="tc-check">✓</span>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- LEARNING BLOCKS -->
     <div class="section">
-      <div class="section-title"><span class="icon">📖</span> Learning Blocks <span class="badge">6 hrs/day</span></div>
-      <div class="learning-block <%= todayProgress.block1_done ? 'done' : '' %>" data-field="block1_done">
-        <div class="block-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div class="block-info"><div class="block-title">Block 1 — DSA (NeetCode 150)</div><div class="block-meta">05:15 AM · 1h 15m</div></div>
-      </div>
-      <div class="learning-block <%= todayProgress.block2_done ? 'done' : '' %>" data-field="block2_done">
-        <div class="block-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div class="block-info"><div class="block-title">Block 2 — Spring Boot / Project</div><div class="block-meta">08:50 AM · 1h 40m</div></div>
-      </div>
-      <div class="learning-block <%= todayProgress.block3_done ? 'done' : '' %>" data-field="block3_done">
-        <div class="block-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div class="block-info"><div class="block-title">Block 3 — System Design / DevOps / AI</div><div class="block-meta">07:55 PM · 1h</div></div>
-      </div>
-      <div class="learning-block <%= todayProgress.block4_done ? 'done' : '' %>" data-field="block4_done">
-        <div class="block-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div class="block-info"><div class="block-title">Block 4 — Revision + Daily LeetCode</div><div class="block-meta">09:05 PM · 30m</div></div>
+      <div class="section-title"><span class="icon">📚</span> Learning Blocks <span class="badge">6 hrs/day</span></div>
+      <div class="learning-blocks">
+        <div class="learning-block <%= todayProgress.block1_done ? 'done' : '' %>" data-field="block1_done">
+          <div class="block-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="block-info"><div class="block-title">Block 1 — DSA (NeetCode 150)</div><div class="block-meta">05:15 AM · 1h 15m</div></div>
+        </div>
+        <div class="learning-block <%= todayProgress.block2_done ? 'done' : '' %>" data-field="block2_done">
+          <div class="block-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="block-info"><div class="block-title">Block 2 — Spring Boot / Project</div><div class="block-meta">08:50 AM · 1h 40m</div></div>
+        </div>
+        <div class="learning-block <%= todayProgress.block3_done ? 'done' : '' %>" data-field="block3_done">
+          <div class="block-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="block-info"><div class="block-title">Block 3 — System Design / DevOps / AI</div><div class="block-meta">07:55 PM · 1h</div></div>
+        </div>
+        <div class="learning-block <%= todayProgress.block4_done ? 'done' : '' %>" data-field="block4_done">
+          <div class="block-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="block-info"><div class="block-title">Block 4 — Revision + Daily LeetCode</div><div class="block-meta">09:05 PM · 30m</div></div>
+        </div>
       </div>
       <div class="learning-total" id="learningTotal"></div>
     </div>
@@ -170,30 +218,48 @@
     <!-- SHIELDS -->
     <div class="section">
       <div class="section-title"><span class="icon">🛡️</span> Daily Shields</div>
-      <div class="cards-grid">
+      <div class="grid cols-2">
         <div class="toggle-card <%= todayProgress.ghusl_rule ? 'checked' : '' %>" data-field="ghusl_rule">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Ghusl Rule — immediate, no delay</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">💧</span>
+            <span class="tc-label">Ghusl Rule — immediate, no delay</span>
+            <span class="tc-check">✓</span>
+          </div>
         </div>
         <div class="toggle-card <%= todayProgress.khalwah_shield ? 'checked' : '' %>" data-field="khalwah_shield">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Khalwah Shield — public only</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">🚪</span>
+            <span class="tc-label">Khalwah Shield — public only</span>
+            <span class="tc-check">✓</span>
+          </div>
         </div>
         <div class="toggle-card <%= todayProgress.night_protocol ? 'checked' : '' %>" data-field="night_protocol">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Night Protocol — sleep on wudu</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">🌌</span>
+            <span class="tc-label">Night Protocol — sleep on wudu</span>
+            <span class="tc-check">✓</span>
+          </div>
         </div>
         <div class="toggle-card <%= todayProgress.phone_out_of_bedroom ? 'checked' : '' %>" data-field="phone_out_of_bedroom">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Phone out of bedroom</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">📵</span>
+            <span class="tc-label">Phone out of bedroom</span>
+            <span class="tc-check">✓</span>
+          </div>
         </div>
         <div class="toggle-card <%= todayProgress.lower_gaze ? 'checked' : '' %>" data-field="lower_gaze">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Lower the gaze</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">👁️</span>
+            <span class="tc-label">Lower the gaze</span>
+            <span class="tc-check">✓</span>
+          </div>
         </div>
         <div class="toggle-card <%= todayProgress.no_new_riba ? 'checked' : '' %>" data-field="no_new_riba">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">No new riba (cards/loans)</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">💳</span>
+            <span class="tc-label">No new riba (cards/loans)</span>
+            <span class="tc-check">✓</span>
+          </div>
         </div>
       </div>
     </div>
@@ -201,18 +267,29 @@
     <!-- EVENING RESET -->
     <div class="section">
       <div class="section-title"><span class="icon">🌙</span> Evening Reset</div>
-      <div class="cards-grid">
+      <div class="grid cols-2">
         <div class="toggle-card <%= todayProgress.evening_reset ? 'checked' : '' %>" data-field="evening_reset">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Evening Reset checklist done</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">✅</span>
+            <span class="tc-label">Evening Reset checklist done</span>
+            <span class="tc-check">✓</span>
+          </div>
         </div>
         <div class="toggle-card <%= todayProgress.haldi_doodh ? 'checked' : '' %>" data-field="haldi_doodh">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Haldi doodh + black pepper</div><div class="card-time">10:00 PM</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">🥛</span>
+            <span class="tc-label">Haldi doodh + black pepper</span>
+            <span class="tc-check">✓</span>
+          </div>
+          <div class="tc-sub">10:00 PM</div>
         </div>
         <div class="toggle-card <%= todayProgress.sleep_on_wudu ? 'checked' : '' %>" data-field="sleep_on_wudu">
-          <div class="check-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <div><div class="card-label">Sleep on wudu</div><div class="card-time">10:15 PM</div></div>
+          <div class="tc-head">
+            <span class="tc-icon">🌙</span>
+            <span class="tc-label">Sleep on wudu</span>
+            <span class="tc-check">✓</span>
+          </div>
+          <div class="tc-sub">10:15 PM</div>
         </div>
       </div>
     </div>
@@ -220,21 +297,21 @@
     <!-- DSA TRACKER -->
     <div class="section">
       <div class="section-title"><span class="icon">🧩</span> DSA Tracker <span class="badge"><%= dsaCount %> solved</span></div>
-      <form id="dsaForm" style="margin-bottom: 16px;">
+      <form id="dsaForm" class="card">
         <div class="form-row">
           <div class="form-group">
             <label>Problem Name</label>
-            <input type="text" name="problem_name" placeholder="e.g. Two Sum" required>
+            <input class="input" type="text" name="problem_name" placeholder="e.g. Two Sum" required />
           </div>
           <div class="form-group">
             <label>Pattern</label>
-            <input type="text" name="pattern" placeholder="e.g. Hash Map">
+            <input class="input" type="text" name="pattern" placeholder="e.g. Hash Map" />
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label>Difficulty</label>
-            <select name="difficulty">
+            <select class="select" name="difficulty">
               <option value="Easy">Easy</option>
               <option value="Medium">Medium</option>
               <option value="Hard">Hard</option>
@@ -242,105 +319,110 @@
           </div>
           <div class="form-group">
             <label>Time (minutes)</label>
-            <input type="number" name="time_minutes" placeholder="20">
+            <input class="input" type="number" name="time_minutes" placeholder="20" min="0" />
           </div>
         </div>
         <div class="form-group">
           <label>Notes</label>
-          <textarea name="notes" placeholder="Approach, edge cases, lessons..."></textarea>
+          <textarea class="textarea" name="notes" placeholder="Approach, edge cases, lessons..."></textarea>
         </div>
-        <button type="submit" class="btn">+ Add Problem</button>
+        <button type="submit" class="btn btn-primary">+ Add Problem</button>
       </form>
       <% if (typeof recentDsa !== 'undefined' && recentDsa.length > 0) { %>
-      <div class="dsa-list">
+      <div class="problem-list">
         <% recentDsa.forEach(function(p) { %>
-        <div class="dsa-item">
-          <div>
-            <div class="name"><%= p.problem_name %></div>
-            <div class="meta"><%= p.date %><% if (p.pattern) { %> · <%= p.pattern %><% } %><% if (p.time_minutes) { %> · <%= p.time_minutes %>m<% } %></div>
+        <div class="problem-item">
+          <div class="p-head">
+            <span class="p-name"><%= p.problem_name %></span>
+            <% if (p.difficulty) { %><span class="diff-badge diff-<%= p.difficulty.toLowerCase() %>"><%= p.difficulty %></span><% } %>
           </div>
-          <% if (p.difficulty) { %>
-          <div class="diff-badge diff-<%= p.difficulty.toLowerCase() %>"><%= p.difficulty %></div>
-          <% } %>
+          <div class="p-meta"><%= p.date %><% if (p.pattern) { %> · <%= p.pattern %><% } %><% if (p.time_minutes) { %> · <%= p.time_minutes %>m<% } %></div>
+          <% if (p.notes) { %><div class="p-notes"><%= p.notes %></div><% } %>
         </div>
         <% }) %>
       </div>
+      <% } else { %>
+      <div class="empty-state">No problems logged yet. Add your first one above. 🧩</div>
       <% } %>
     </div>
 
     <!-- JOURNAL -->
     <div class="section">
       <div class="section-title"><span class="icon">📝</span> Journal</div>
-      <div class="journal-section">
-        <label>3 Wins from Today</label>
-        <textarea id="journal_wins" placeholder="What went well today?"></textarea>
+      <div class="card">
+        <div class="journal-section">
+          <label for="journal_wins">3 Wins from Today</label>
+          <textarea class="textarea" id="journal_wins" placeholder="What went well today?"></textarea>
+        </div>
+        <div class="journal-section">
+          <label for="journal_targets">3 Targets for Tomorrow</label>
+          <textarea class="textarea" id="journal_targets" placeholder="What are your 3 non-negotiables?"></textarea>
+        </div>
+        <div class="journal-section">
+          <label for="journal_braindump">Brain Dump</label>
+          <textarea class="textarea" id="journal_braindump" placeholder="5 min freewrite — whatever is on your mind"></textarea>
+        </div>
+        <button class="btn btn-gold" onclick="saveJournal()">Save Journal</button>
       </div>
-      <div class="journal-section">
-        <label>3 Targets for Tomorrow</label>
-        <textarea id="journal_targets" placeholder="What are your 3 non-negotiables?"></textarea>
-      </div>
-      <div class="journal-section">
-        <label>Brain Dump</label>
-        <textarea id="journal_braindump" placeholder="5 min freewrite — whatever is on your mind"></textarea>
-      </div>
-      <button class="btn btn-gold" onclick="saveJournal()">Save Journal</button>
     </div>
 
     <!-- WEEKLY REVIEW -->
     <div class="section">
       <div class="section-title"><span class="icon">📋</span> Weekly Review</div>
-      <div class="review-stats">
-        <div class="review-stat"><div class="num"><%= weekStats.salah_complete_days || 0 %>/7</div><div class="label">Salah</div></div>
-        <div class="review-stat"><div class="num"><%= dsaCount %></div><div class="label">DSA Total</div></div>
-        <div class="review-stat"><div class="num"><%= dayNumber %></div><div class="label">Day of 84</div></div>
+      <div class="week-stats">
+        <div class="week-stat"><div class="ws-num"><%= weekStats.salah_complete_days || 0 %>/7</div><div class="ws-label">Salah</div></div>
+        <div class="week-stat"><div class="ws-num"><%= dsaCount %></div><div class="ws-label">DSA Total</div></div>
+        <div class="week-stat"><div class="ws-num"><%= dayNumber %></div><div class="ws-label">Day of 84</div></div>
       </div>
-      <form id="reviewForm">
+      <form id="reviewForm" class="card mt">
         <div class="form-row">
           <div class="form-group">
             <label>Week Number</label>
-            <input type="number" name="week_number" placeholder="1" min="1" max="12" value="<%= Math.ceil(dayNumber / 7) || 1 %>">
+            <input class="input" type="number" name="week_number" placeholder="1" min="1" max="12" value="<%= Math.ceil(dayNumber / 7) || 1 %>" />
           </div>
           <div class="form-group">
             <label>Salah hits (out of 5)</label>
-            <input type="number" name="salah_hits" placeholder="5" min="0" max="5">
+            <input class="input" type="number" name="salah_hits" placeholder="5" min="0" max="5" />
           </div>
         </div>
         <div class="form-group">
           <label>DSA problems this week</label>
-          <input type="number" name="dsa_count" placeholder="15" min="0">
+          <input class="input" type="number" name="dsa_count" placeholder="15" min="0" />
         </div>
         <div class="form-group">
           <label>Shield Notes (what worked, what didn't)</label>
-          <textarea name="shield_notes" placeholder="Which shields held? Which need adjusting?"></textarea>
+          <textarea class="textarea" name="shield_notes" placeholder="Which shields held? Which need adjusting?"></textarea>
         </div>
         <div class="form-group">
           <label>Notes</label>
-          <textarea name="notes" placeholder="What progressed? What carries forward?"></textarea>
+          <textarea class="textarea" name="notes" placeholder="What progressed? What carries forward?"></textarea>
         </div>
-        <button type="submit" class="btn">Save Review</button>
+        <button type="submit" class="btn btn-primary">Save Review</button>
       </form>
     </div>
 
     <!-- QUOTE FOOTER -->
-    <div class="quote-section" id="quoteSection">
-      <div class="quote-text" id="quoteText"></div>
-      <div class="quote-source" id="quoteSource"></div>
-    </div>
+    <footer class="app-footer">
+      <div class="quote-block">
+        <div class="quote-text" id="quoteText"></div>
+        <div class="quote-author" id="quoteSource"></div>
+      </div>
+    </footer>
 
-  </div>
+  </main>
 
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
   <script>
-    // Toggle progress
+    // Toggle progress (toggle-cards, salah-cards, learning-blocks)
     document.querySelectorAll('.toggle-card, .salah-card, .learning-block').forEach(card => {
       card.addEventListener('click', async () => {
         const field = card.dataset.field;
         if (!field) return;
         const isChecked = card.classList.contains('checked') || card.classList.contains('done');
         const newValue = !isChecked;
-        
+
         try {
           const res = await fetch('/api/progress', {
             method: 'POST',
@@ -358,6 +440,8 @@
             checkSalahComplete();
             updateLearningTotal();
             showToast('✓ Updated');
+          } else {
+            showToast('✗ Error', true);
           }
         } catch (err) {
           showToast('✗ Error', true);
@@ -367,19 +451,26 @@
 
     function checkSalahComplete() {
       const prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
-      const allChecked = prayers.every(p => document.querySelector(`.salah-card[data-field="${p}"]`).classList.contains('checked'));
+      const allChecked = prayers.every(p => {
+        const el = document.querySelector(`.salah-card[data-field="${p}"]`);
+        return el && el.classList.contains('checked');
+      });
       document.getElementById('salahBanner').classList.toggle('show', allChecked);
     }
 
     function updateLearningTotal() {
       const blocks = ['block1_done', 'block2_done', 'block3_done', 'block4_done'];
-      const done = blocks.filter(b => document.querySelector(`.learning-block[data-field="${b}"]`).classList.contains('done')).length;
+      const done = blocks.filter(b => {
+        const el = document.querySelector(`.learning-block[data-field="${b}"]`);
+        return el && el.classList.contains('done');
+      }).length;
       const total = document.getElementById('learningTotal');
       if (done === 4) {
         total.textContent = '🎉 All 4 blocks done! 6 hours complete! 🔥';
         total.style.color = 'var(--emerald)';
       } else {
-        total.textContent = `${done}/4 blocks done`;
+        total.textContent = done + '/4 blocks done';
+        total.style.color = 'var(--text-dim)';
       }
     }
 
@@ -400,6 +491,8 @@
         if (res.ok) {
           showToast('✓ Problem logged!');
           e.target.reset();
+        } else {
+          showToast('✗ Error', true);
         }
       } catch (err) {
         showToast('✗ Error', true);
@@ -413,18 +506,21 @@
         { entry_type: 'three_targets', content: document.getElementById('journal_targets').value },
         { entry_type: 'brain_dump', content: document.getElementById('journal_braindump').value }
       ];
+      let saved = 0;
       for (const entry of entries) {
         if (entry.content.trim()) {
           try {
-            await fetch('/api/journal', {
+            const res = await fetch('/api/journal', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(entry)
             });
+            if (res.ok) saved++;
           } catch (err) { }
         }
       }
-      showToast('✓ Journal saved!');
+      if (saved > 0) showToast('✓ Journal saved!');
+      else showToast('Nothing to save', true);
     }
 
     // Weekly review form
@@ -439,6 +535,7 @@
           body: JSON.stringify(data)
         });
         if (res.ok) showToast('✓ Review saved!');
+        else showToast('✗ Error', true);
       } catch (err) {
         showToast('✗ Error', true);
       }
@@ -449,7 +546,7 @@
       const toast = document.getElementById('toast');
       toast.textContent = msg;
       toast.className = 'toast show' + (isError ? ' error' : '');
-      setTimeout(() => toast.className = 'toast' + (isError ? ' error' : ''), 2000);
+      setTimeout(() => { toast.className = 'toast' + (isError ? ' error' : ''); }, 2000);
     }
 
     // Rotating quotes
@@ -467,7 +564,7 @@
       { text: "The strong believer is better and more beloved to Allah than the weak believer, though in both there is good.", source: "Prophet Muhammad ﷺ (Muslim)" },
       { text: "Strive for that which benefits you, and seek Allah's help, and do not despair.", source: "Prophet Muhammad ﷺ (Muslim)" },
       { text: "You are at 1% of your potential. The salah is the lever that unlocks the other 99%.", source: "Your Mentor" },
-      { text: "Every LeetCode problem is an act of walking away from riba.", source: "Your Mentor" },
+      { text: "Every LeetCode problem is an act of walking away from riba.", source: "Your Mentor" }
     ];
 
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);

@@ -26,6 +26,9 @@
   --gold-bg:       rgba(245, 197, 66, 0.10);
   --gold-bd:       rgba(245, 197, 66, 0.30);
 
+  --blue:          #5ab8ff;
+  --purple:        #b79cff;
+
   --danger:        #ff6b6b;
 
   --radius:        16px;
@@ -679,4 +682,204 @@ input, textarea, button, select { font-family: inherit; font-size: inherit; }
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ==========================================================================
+   Dashboard-specific components
+   ========================================================================== */
+
+/* ---------- Header top bar ---------- */
+.header-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+/* The ::after check watermark clashes with the solid tc-check circle — drop it */
+.toggle-card.checked::after { content: none; }
+
+/* ---------- Section title badges ---------- */
+.section-title .badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  background: var(--emerald-bg);
+  border: 1px solid var(--emerald-bd);
+  color: var(--emerald);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* ---------- Salah tracker ---------- */
+.salah-grid {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 480px) {
+  .salah-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 900px) {
+  .salah-grid { grid-template-columns: repeat(5, 1fr); }
+}
+
+.salah-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 96px;
+  padding: var(--space-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition);
+}
+
+.salah-card:hover { background: var(--bg-card-hi); border-color: var(--border-hi); }
+.salah-card:active { transform: scale(0.97); }
+
+.salah-card .prayer-icon { font-size: 1.8rem; line-height: 1; }
+.salah-card .prayer-name { font-size: 0.9rem; font-weight: 600; color: var(--text-dim); }
+
+.salah-card.checked {
+  background: var(--emerald-bg);
+  border-color: var(--emerald-bd);
+}
+.salah-card.checked .prayer-icon { filter: drop-shadow(0 0 6px rgba(46, 229, 157, 0.4)); }
+.salah-card.checked .prayer-name { color: var(--emerald); }
+.salah-card.checked::after {
+  content: "✓";
+  position: absolute;
+  top: 8px; right: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--emerald);
+}
+
+/* Friday Jumu'ah row */
+.salah-extra {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-md);
+}
+.salah-extra .salah-card { width: 100%; max-width: 260px; }
+
+/* ---------- Learning blocks ---------- */
+.learning-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.learning-block {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition);
+}
+
+.learning-block:hover { background: var(--bg-card-hi); border-color: var(--border-hi); }
+.learning-block:active { transform: scale(0.99); }
+
+.learning-block .block-check {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 2px solid var(--border-hi);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  background: transparent;
+  transition: all var(--transition);
+}
+
+.learning-block .block-check svg { width: 14px; height: 14px; display: block; }
+
+.learning-block .block-info { flex: 1; min-width: 0; }
+.learning-block .block-title { font-weight: 600; color: var(--text); }
+.learning-block .block-meta { font-size: 0.78rem; color: var(--text-mute); margin-top: 2px; }
+
+.learning-block.done { background: var(--emerald-bg); border-color: var(--emerald-bd); }
+.learning-block.done .block-check { background: var(--emerald); border-color: var(--emerald); color: #06231b; }
+.learning-block.done .block-title { color: var(--emerald); }
+
+.learning-total {
+  margin-top: var(--space-md);
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-dim);
+  min-height: 1.2em;
+}
+
+/* ---------- Form rows / groups (DSA + review forms) ---------- */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+@media (min-width: 600px) {
+  .form-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+.form-group { margin-bottom: var(--space-md); }
+
+.form-group label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-mute);
+  margin-bottom: 6px;
+}
+
+/* ---------- DSA difficulty badges ---------- */
+.diff-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.problem-item .p-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+.problem-item .p-head .p-name { flex: 1; min-width: 0; }
+
+/* ---------- Journal ---------- */
+.journal-section { margin-bottom: var(--space-md); }
+
+.journal-section label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-mute);
+  margin-bottom: 6px;
 }

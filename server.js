@@ -129,25 +129,26 @@ app.post('/api/progress', requireAuth, async (req, res) => {
   const userId = req.session.user.id;
   
   const allowedFields = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jumuah', 'tahajjud', 'duha',
-    'survival_layer', 'morning_reading', 'targets_set', 'house_task',
+    'survival_layer', 'survival_layer_teeth', 'survival_layer_wudu',
+    'morning_reading', 'targets_set', 'house_task',
     'mma', 'post_workout_meal', 'shower',
     'dsa_done', 'spring_boot_done', 'system_design_done', 'revision_done',
     'evening_reset', 'haldi_doodh', 'sleep_on_wudu', 'ghusl_rule',
     'khalwah_shield', 'night_protocol', 'phone_out_of_bedroom', 'lower_gaze',
     'fasting', 'no_new_riba',
     'block1_done', 'block2_done', 'block3_done', 'block4_done'];
-  
+
   if (!allowedFields.includes(field)) {
     return res.status(400).json({ error: 'Invalid field' });
   }
-  
+
   try {
     await pool.query(`
       INSERT INTO daily_progress (user_id, date, ${field})
       VALUES ($1, $2, $3)
       ON CONFLICT (user_id, date) DO UPDATE SET ${field} = $3, updated_at = NOW()
     `, [userId, today, value === true || value === 'true']);
-    
+
     // Check if salah is complete
     if (['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].includes(field)) {
       const allPrayers = await pool.query('SELECT fajr, dhuhr, asr, maghrib, isha FROM daily_progress WHERE user_id = $1 AND date = $2', [userId, today]);
@@ -249,18 +250,19 @@ app.post('/api/sync/update', requireApiKey, async (req, res) => {
   const targetDate = date || new Date().toISOString().split('T')[0];
   
   const allowedFields = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jumuah', 'tahajjud', 'duha',
-    'survival_layer', 'morning_reading', 'targets_set', 'house_task',
+    'survival_layer', 'survival_layer_teeth', 'survival_layer_wudu',
+    'morning_reading', 'targets_set', 'house_task',
     'mma', 'post_workout_meal', 'shower',
     'dsa_done', 'spring_boot_done', 'system_design_done', 'revision_done',
     'evening_reset', 'haldi_doodh', 'sleep_on_wudu', 'ghusl_rule',
     'khalwah_shield', 'night_protocol', 'phone_out_of_bedroom', 'lower_gaze',
     'fasting', 'no_new_riba',
     'block1_done', 'block2_done', 'block3_done', 'block4_done'];
-  
+
   if (!allowedFields.includes(field)) {
     return res.status(400).json({ error: 'Invalid field' });
   }
-  
+
   try {
     const userId = 1; // Single user
     await pool.query(`
@@ -333,6 +335,8 @@ async function initDB() {
       duha BOOLEAN DEFAULT false,
       salah_complete BOOLEAN DEFAULT false,
       survival_layer BOOLEAN DEFAULT false,
+      survival_layer_teeth BOOLEAN DEFAULT false,
+      survival_layer_wudu BOOLEAN DEFAULT false,
       morning_reading BOOLEAN DEFAULT false,
       targets_set BOOLEAN DEFAULT false,
       house_task BOOLEAN DEFAULT false,
@@ -361,7 +365,11 @@ async function initDB() {
       updated_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(user_id, date)
     )`);
-    
+
+    // Migrate existing tables: add new columns if missing (idempotent)
+    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS survival_layer_teeth BOOLEAN DEFAULT false`);
+    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS survival_layer_wudu BOOLEAN DEFAULT false`);
+
     await client.query(`CREATE TABLE IF NOT EXISTS dsa_log (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id),

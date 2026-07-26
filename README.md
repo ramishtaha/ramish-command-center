@@ -46,7 +46,7 @@ Body: { "field": "fajr", "value": true, "date": "YYYY-MM-DD" }
 ```
 
 ### Available fields
-`fajr`, `dhuhr`, `asr`, `maghrib`, `isha`, `jumuah`, `tahajjud`, `duha`, `survival_layer`, `morning_reading`, `targets_set`, `house_task`, `mma`, `post_workout_meal`, `shower`, `dsa_done`, `spring_boot_done`, `system_design_done`, `revision_done`, `evening_reset`, `haldi_doodh`, `sleep_on_wudu`, `ghusl_rule`, `khalwah_shield`, `night_protocol`, `phone_out_of_bedroom`, `lower_gaze`, `fasting`, `no_new_riba`, `block1_done`, `block2_done`, `block3_done`, `block4_done`
+`fajr`, `dhuhr`, `asr`, `maghrib`, `isha`, `jumuah`, `tahajjud`, `duha`, `survival_layer`, `survival_layer_teeth`, `survival_layer_wudu`, `morning_reading`, `targets_set`, `house_task`, `mma`, `post_workout_meal`, `shower`, `dsa_done`, `spring_boot_done`, `system_design_done`, `revision_done`, `evening_reset`, `haldi_doodh`, `sleep_on_wudu`, `ghusl_rule`, `khalwah_shield`, `night_protocol`, `phone_out_of_bedroom`, `lower_gaze`, `fasting`, `no_new_riba`, `block1_done`, `block2_done`, `block3_done`, `block4_done`
 
 ## 🚀 Deploy
 
