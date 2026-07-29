@@ -140,8 +140,17 @@ app.get('/', requireAuth, async (req, res) => {
       prayers: prayerHistoryRaw.rows
     };
     
-    // App state
-    const appState = await pool.query('SELECT * FROM app_state');
+    // App state — parse JSONB values into template vars
+    const appStateRaw = await pool.query('SELECT * FROM app_state');
+    const appStateMap = {};
+    appStateRaw.rows.forEach(r => {
+      try { appStateMap[r.key] = typeof r.value === 'string' ? JSON.parse(r.value) : r.value; }
+      catch(e) { appStateMap[r.key] = r.value; }
+    });
+    const todayPlan = appStateMap.today_plan || { dsa: [], spring_boot: '', system_design: '', career: '', devops: '' };
+    const overdueRevisions = appStateMap.overdue_revisions || [];
+    const unaidedQueue = appStateMap.unaided_queue || [];
+    const appState = appStateRaw.rows;
     
     // Projection
     const dsaCountNum = parseInt(dsaCount.rows[0].count, 10);
@@ -176,10 +185,9 @@ app.get('/', requireAuth, async (req, res) => {
       dsaUnaided,
       history,
       appState: appState.rows,
-      pace,
-      projectedFinishDays,
-      restBudget,
-      needToSpeedUp,
+      todayPlan,
+      overdueRevisions,
+      unaidedQueue,
       projection
     });
   } catch (err) {
