@@ -102,6 +102,62 @@ app.get('/', requireAuth, async (req, res) => {
     // Get recent DSA problems
     const recentDsa = await pool.query('SELECT * FROM dsa_log WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10', [req.session.user.id]);
     
+    // === NEW: Enhanced dashboard queries ===
+    
+    // Active day count
+    const activeDayResult = await pool.query('SELECT COUNT(*) FROM daily_progress WHERE user_id = $1 AND active_day = true', [req.session.user.id]);
+    const activeDayCount = parseInt(activeDayResult.rows[0].count, 10);
+    
+    // DSA unaided breakdown by help_level
+    const dsaUnaidedRaw = await pool.query('SELECT help_level, COUNT(*) FROM dsa_log WHERE user_id = $1 GROUP BY help_level', [req.session.user.id]);
+    // Transform into object the template expects: { alone, hint, copilot, percent }
+    const dsaUnaidedMap = {};
+    dsaUnaidedRaw.rows.forEach(r => { dsaUnaidedMap[r.help_level] = parseInt(r.count, 10); });
+    const aloneCount = dsaUnaidedMap.alone || 0;
+    const hintCount = dsaUnaidedMap.hint || 0;
+    const copilotCount = dsaUnaidedMap.copilot || 0;
+    const totalDsaForUnaided = aloneCount + hintCount + copilotCount;
+    const dsaUnaided = {
+      alone: aloneCount,
+      hint: hintCount,
+      copilot: copilotCount,
+      percent: totalDsaForUnaided > 0 ? Math.round((aloneCount / totalDsaForUnaided) * 100) : 0
+    };
+    
+    // History: last 14 days DSA counts
+    const dsaHistoryRaw = await pool.query("SELECT date, COUNT(*) FROM dsa_log WHERE user_id = $1 AND date >= NOW() - INTERVAL '14 days' GROUP BY date ORDER BY date", [req.session.user.id]);
+    
+    // Bar history: last 7 days
+    const barHistoryRaw = await pool.query("SELECT date, bar_hit FROM daily_progress WHERE user_id = $1 AND date >= NOW() - INTERVAL '7 days' ORDER BY date", [req.session.user.id]);
+    
+    // Prayer history: last 7 days
+    const prayerHistoryRaw = await pool.query("SELECT date, fajr, dhuhr, asr, maghrib, isha FROM daily_progress WHERE user_id = $1 AND date >= NOW() - INTERVAL '7 days' ORDER BY date", [req.session.user.id]);
+    
+    // Assemble history object the template expects: { dsa:[], bars:[], prayers:[] }
+    const history = {
+      dsa: dsaHistoryRaw.rows.map(r => ({ date: r.date, count: parseInt(r.count, 10) })),
+      bars: barHistoryRaw.rows.map(r => ({ date: r.date, bar_hit: r.bar_hit })),
+      prayers: prayerHistoryRaw.rows
+    };
+    
+    // App state
+    const appState = await pool.query('SELECT * FROM app_state');
+    
+    // Projection
+    const dsaCountNum = parseInt(dsaCount.rows[0].count, 10);
+    const pace = dsaCountNum / Math.max(activeDayCount, 1);
+    const projectedFinishDays = activeDayCount + Math.ceil((171 - dsaCountNum) / Math.max(pace, 0.1));
+    const restBudget = 84 - projectedFinishDays;
+    const needToSpeedUp = projectedFinishDays > 84;
+    const daysRemaining = 84 - dayNumber;
+    const projection = {
+      pace: pace.toFixed(1),
+      daysRemaining,
+      projectedFinishDays,
+      restBudget,
+      needToSpeedUp
+    };
+    
     res.render('dashboard', {
       user: req.session.user,
       todayProgress,
@@ -114,7 +170,17 @@ app.get('/', requireAuth, async (req, res) => {
       journal: journal.rows,
       review: review.rows[0],
       recentDsa: recentDsa.rows,
-      today: new Date()
+      today: new Date(),
+      // NEW: enhanced variables
+      activeDayCount,
+      dsaUnaided,
+      history,
+      appState: appState.rows,
+      pace,
+      projectedFinishDays,
+      restBudget,
+      needToSpeedUp,
+      projection
     });
   } catch (err) {
     console.error('Dashboard error:', err);
@@ -129,26 +195,39 @@ app.post('/api/progress', requireAuth, async (req, res) => {
   const userId = req.session.user.id;
   
   const allowedFields = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jumuah', 'tahajjud', 'duha',
-    'survival_layer', 'survival_layer_teeth', 'survival_layer_wudu',
-    'morning_reading', 'targets_set', 'house_task',
+    'survival_layer', 'morning_reading', 'targets_set', 'house_task',
     'mma', 'post_workout_meal', 'shower',
     'dsa_done', 'spring_boot_done', 'system_design_done', 'revision_done',
     'evening_reset', 'haldi_doodh', 'sleep_on_wudu', 'ghusl_rule',
     'khalwah_shield', 'night_protocol', 'phone_out_of_bedroom', 'lower_gaze',
     'fasting', 'no_new_riba',
-    'block1_done', 'block2_done', 'block3_done', 'block4_done'];
-
+    'block1_done', 'block2_done', 'block3_done', 'block4_done',
+    // NEW fields
+    'bar_hit', 'mode_used', 'office_time_used', 'claude_cert_minutes', 'active_day'];
+  
   if (!allowedFields.includes(field)) {
     return res.status(400).json({ error: 'Invalid field' });
   }
-
+  
+  // Determine value type based on field
+  const stringFields = ['bar_hit', 'mode_used'];
+  const intFields = ['claude_cert_minutes'];
+  let dbValue;
+  if (stringFields.includes(field)) {
+    dbValue = String(value);
+  } else if (intFields.includes(field)) {
+    dbValue = parseInt(value, 10) || 0;
+  } else {
+    dbValue = value === true || value === 'true';
+  }
+  
   try {
     await pool.query(`
       INSERT INTO daily_progress (user_id, date, ${field})
       VALUES ($1, $2, $3)
       ON CONFLICT (user_id, date) DO UPDATE SET ${field} = $3, updated_at = NOW()
-    `, [userId, today, value === true || value === 'true']);
-
+    `, [userId, today, dbValue]);
+    
     // Check if salah is complete
     if (['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'].includes(field)) {
       const allPrayers = await pool.query('SELECT fajr, dhuhr, asr, maghrib, isha FROM daily_progress WHERE user_id = $1 AND date = $2', [userId, today]);
@@ -166,14 +245,19 @@ app.post('/api/progress', requireAuth, async (req, res) => {
 
 // Add DSA problem
 app.post('/api/dsa', requireAuth, async (req, res) => {
-  const { problem_name, pattern, difficulty, time_minutes, needed_help, notes } = req.body;
+  const { problem_name, pattern, difficulty, time_minutes, needed_help, notes, help_level } = req.body;
   const today = new Date().toISOString().split('T')[0];
+  
+  // Validate help_level
+  const validHelpLevels = ['alone', 'hint', 'copilot'];
+  const safeHelpLevel = validHelpLevels.includes(help_level) ? help_level : 'alone';
+  const unaidedResolve = safeHelpLevel === 'alone';
   
   try {
     await pool.query(`
-      INSERT INTO dsa_log (user_id, date, problem_name, pattern, difficulty, time_minutes, needed_help, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    `, [req.session.user.id, today, problem_name, pattern, difficulty, time_minutes || null, needed_help === 'true', notes || null]);
+      INSERT INTO dsa_log (user_id, date, problem_name, pattern, difficulty, time_minutes, needed_help, notes, help_level, unaided_resolve)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    `, [req.session.user.id, today, problem_name, pattern, difficulty, time_minutes || null, needed_help === 'true', notes || null, safeHelpLevel, unaidedResolve]);
     
     res.json({ success: true });
   } catch (err) {
@@ -250,30 +334,121 @@ app.post('/api/sync/update', requireApiKey, async (req, res) => {
   const targetDate = date || new Date().toISOString().split('T')[0];
   
   const allowedFields = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jumuah', 'tahajjud', 'duha',
-    'survival_layer', 'survival_layer_teeth', 'survival_layer_wudu',
-    'morning_reading', 'targets_set', 'house_task',
+    'survival_layer', 'morning_reading', 'targets_set', 'house_task',
     'mma', 'post_workout_meal', 'shower',
     'dsa_done', 'spring_boot_done', 'system_design_done', 'revision_done',
     'evening_reset', 'haldi_doodh', 'sleep_on_wudu', 'ghusl_rule',
     'khalwah_shield', 'night_protocol', 'phone_out_of_bedroom', 'lower_gaze',
     'fasting', 'no_new_riba',
-    'block1_done', 'block2_done', 'block3_done', 'block4_done'];
-
+    'block1_done', 'block2_done', 'block3_done', 'block4_done',
+    // NEW fields
+    'bar_hit', 'mode_used', 'office_time_used', 'claude_cert_minutes', 'active_day'];
+  
   if (!allowedFields.includes(field)) {
     return res.status(400).json({ error: 'Invalid field' });
   }
-
+  
+  // Determine value type based on field
+  const stringFields = ['bar_hit', 'mode_used'];
+  const intFields = ['claude_cert_minutes'];
+  let dbValue;
+  if (stringFields.includes(field)) {
+    dbValue = String(value);
+  } else if (intFields.includes(field)) {
+    dbValue = parseInt(value, 10) || 0;
+  } else {
+    dbValue = value === true || value === 'true';
+  }
+  
   try {
     const userId = 1; // Single user
     await pool.query(`
       INSERT INTO daily_progress (user_id, date, ${field})
       VALUES ($1, $2, $3)
       ON CONFLICT (user_id, date) DO UPDATE SET ${field} = $3, updated_at = NOW()
-    `, [userId, targetDate, value === true || value === 'true']);
+    `, [userId, targetDate, dbValue]);
     
     res.json({ success: true });
   } catch (err) {
     console.error('Sync update error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Bulk sync endpoint (for Hermes)
+app.post('/api/sync/bulk', requireApiKey, async (req, res) => {
+  const { dsa_problems, state, overdue_revisions, unaided_queue, today_plan } = req.body;
+  const userId = 1; // Single user
+  const today = new Date().toISOString().split('T')[0];
+  const validHelpLevels = ['alone', 'hint', 'copilot'];
+  
+  try {
+    // Insert DSA problems
+    if (dsa_problems && Array.isArray(dsa_problems)) {
+      for (const p of dsa_problems) {
+        if (!p.problem_name) continue; // skip invalid entries
+        const safeHelpLevel = validHelpLevels.includes(p.help_level) ? p.help_level : 'alone';
+        const unaidedResolve = safeHelpLevel === 'alone';
+        await pool.query(`
+          INSERT INTO dsa_log (user_id, date, problem_name, pattern, difficulty, help_level, unaided_resolve, notes)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `, [userId, p.date || today, p.problem_name, p.pattern || null, p.difficulty || null, safeHelpLevel, unaidedResolve, p.notes || null]);
+      }
+    }
+    
+    // Update daily_progress for today with state values
+    if (state) {
+      const barHit = state.bar_hit_today || 'none';
+      const modeUsed = state.mode_used || 'home';
+      const officeTimeUsed = !!state.office_time_used;
+      const claudeCertMinutes = state.claude_cert_minutes || 0;
+      const activeDay = !!state.active_day;
+      
+      await pool.query(`
+        INSERT INTO daily_progress (user_id, date, bar_hit, mode_used, office_time_used, claude_cert_minutes, active_day)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (user_id, date) DO UPDATE SET 
+          bar_hit = $3, mode_used = $4, office_time_used = $5, 
+          claude_cert_minutes = $6, active_day = $7, updated_at = NOW()
+      `, [userId, today, barHit, modeUsed, officeTimeUsed, claudeCertMinutes, activeDay]);
+    }
+    
+    // Store app_state entries
+    if (overdue_revisions !== undefined) {
+      await upsertAppState('overdue_revisions', overdue_revisions);
+    }
+    if (unaided_queue !== undefined) {
+      await upsertAppState('unaided_queue', unaided_queue);
+    }
+    if (today_plan !== undefined) {
+      await upsertAppState('today_plan', today_plan);
+    }
+    
+    res.json({ success: true, date: today });
+  } catch (err) {
+    console.error('Bulk sync error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get full state for Hermes to read
+app.get('/api/state', requireApiKey, async (req, res) => {
+  try {
+    const dailyProgress = await pool.query("SELECT * FROM daily_progress WHERE user_id = 1 AND date >= NOW() - INTERVAL '14 days' ORDER BY date DESC");
+    const dsaLog = await pool.query('SELECT * FROM dsa_log WHERE user_id = 1 ORDER BY created_at DESC');
+    const journal = await pool.query('SELECT * FROM journal_entries WHERE user_id = 1 ORDER BY date DESC');
+    const reviews = await pool.query('SELECT * FROM weekly_reviews WHERE user_id = 1 ORDER BY week_number DESC');
+    const appState = await pool.query('SELECT * FROM app_state');
+    
+    res.json({
+      daily_progress: dailyProgress.rows,
+      dsa_log: dsaLog.rows,
+      journal_entries: journal.rows,
+      weekly_reviews: reviews.rows,
+      app_state: appState.rows
+    });
+  } catch (err) {
+    console.error('State error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -314,6 +489,15 @@ async function getWeekStats(pool, userId) {
   return result.rows[0];
 }
 
+// NEW: Upsert helper for app_state table
+async function upsertAppState(key, value) {
+  await pool.query(`
+    INSERT INTO app_state (key, value, updated_at)
+    VALUES ($1, $2, NOW())
+    ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()
+  `, [key, JSON.stringify(value)]);
+}
+
 // ============= DB INIT =============
 
 async function initDB() {
@@ -335,8 +519,6 @@ async function initDB() {
       duha BOOLEAN DEFAULT false,
       salah_complete BOOLEAN DEFAULT false,
       survival_layer BOOLEAN DEFAULT false,
-      survival_layer_teeth BOOLEAN DEFAULT false,
-      survival_layer_wudu BOOLEAN DEFAULT false,
       morning_reading BOOLEAN DEFAULT false,
       targets_set BOOLEAN DEFAULT false,
       house_task BOOLEAN DEFAULT false,
@@ -365,11 +547,7 @@ async function initDB() {
       updated_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(user_id, date)
     )`);
-
-    // Migrate existing tables: add new columns if missing (idempotent)
-    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS survival_layer_teeth BOOLEAN DEFAULT false`);
-    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS survival_layer_wudu BOOLEAN DEFAULT false`);
-
+    
     await client.query(`CREATE TABLE IF NOT EXISTS dsa_log (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id),
@@ -407,6 +585,25 @@ async function initDB() {
       updated_at TIMESTAMP DEFAULT NOW(),
       UNIQUE(user_id, week_number)
     )`);
+    
+    // NEW: app_state table for storing JSON state (overdue_revisions, unaided_queue, today_plan)
+    await client.query(`CREATE TABLE IF NOT EXISTS app_state (
+      id SERIAL PRIMARY KEY,
+      key VARCHAR(50) UNIQUE,
+      value JSONB,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )`);
+    
+    // NEW: Migrations for daily_progress columns (IF NOT EXISTS for existing Heroku DB)
+    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS bar_hit VARCHAR(10) DEFAULT 'none'`);
+    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS mode_used VARCHAR(10) DEFAULT 'home'`);
+    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS office_time_used BOOLEAN DEFAULT false`);
+    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS claude_cert_minutes INTEGER DEFAULT 0`);
+    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS active_day BOOLEAN DEFAULT false`);
+    
+    // NEW: Migrations for dsa_log columns (IF NOT EXISTS for existing Heroku DB)
+    await client.query(`ALTER TABLE dsa_log ADD COLUMN IF NOT EXISTS help_level VARCHAR(20) DEFAULT 'alone'`);
+    await client.query(`ALTER TABLE dsa_log ADD COLUMN IF NOT EXISTS unaided_resolve BOOLEAN DEFAULT false`);
     
     // Create default user if not exists
     const userExists = await client.query('SELECT * FROM users WHERE username = $1', ['ramish']);

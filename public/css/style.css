@@ -26,9 +26,6 @@
   --gold-bg:       rgba(245, 197, 66, 0.10);
   --gold-bd:       rgba(245, 197, 66, 0.30);
 
-  --blue:          #5ab8ff;
-  --purple:        #b79cff;
-
   --danger:        #ff6b6b;
 
   --radius:        16px;
@@ -685,201 +682,466 @@ input, textarea, button, select { font-family: inherit; font-size: inherit; }
 }
 
 /* ==========================================================================
-   Dashboard-specific components
+   NEW SECTIONS — Hero, Trajectory, Today's Plan, Overdue, Unaided, Charts
    ========================================================================== */
 
-/* ---------- Header top bar ---------- */
-.header-top {
-  display: flex;
+/* ---------- Mode indicator badge ---------- */
+.mode-badge {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-md);
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-
-/* The ::after check watermark clashes with the solid tc-check circle — drop it */
-.toggle-card.checked::after { content: none; }
-
-/* ---------- Section title badges ---------- */
-.section-title .badge {
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 3px 10px;
-  background: var(--emerald-bg);
-  border: 1px solid var(--emerald-bd);
-  color: var(--emerald);
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-hi);
   border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
   white-space: nowrap;
 }
 
-/* ---------- Salah tracker ---------- */
-.salah-grid {
-  display: grid;
-  gap: var(--space-md);
-  grid-template-columns: repeat(2, 1fr);
+/* ---------- Hero header enhancements ---------- */
+.hero-header {
+  padding: var(--space-xl) 0 var(--space-lg);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(46,229,157,0.06), transparent 50%),
+    radial-gradient(circle at 90% 20%, rgba(245,197,66,0.04), transparent 50%),
+    linear-gradient(180deg, var(--bg-elev), var(--bg));
 }
 
-@media (min-width: 480px) {
-  .salah-grid { grid-template-columns: repeat(3, 1fr); }
-}
-
-@media (min-width: 900px) {
-  .salah-grid { grid-template-columns: repeat(5, 1fr); }
-}
-
-.salah-card {
-  position: relative;
+.hero-row {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 96px;
-  padding: var(--space-md);
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  align-items: stretch;
+}
+
+.hero-block {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  cursor: pointer;
-  user-select: none;
-  transition: all var(--transition);
+  padding: var(--space-md);
+  flex: 1 1 120px;
+  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: border-color var(--transition);
 }
 
-.salah-card:hover { background: var(--bg-card-hi); border-color: var(--border-hi); }
-.salah-card:active { transform: scale(0.97); }
+.hero-block:hover { border-color: var(--border-hi); }
 
-.salah-card .prayer-icon { font-size: 1.8rem; line-height: 1; }
-.salah-card .prayer-name { font-size: 0.9rem; font-weight: 600; color: var(--text-dim); }
+.hero-block--wide {
+  flex: 3 1 240px;
+  min-width: 240px;
+  justify-content: center;
+}
 
-.salah-card.checked {
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.hero-stat-num {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--emerald);
+  line-height: 1;
+}
+
+.hero-stat-num.bar-emoji {
+  font-size: 2.2rem;
+}
+
+.hero-stat-label {
+  font-size: 0.72rem;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.unaided-mini-badge {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 2px 8px;
   background: var(--emerald-bg);
-  border-color: var(--emerald-bd);
+  border-radius: 999px;
+  border: 1px solid var(--emerald-bd);
 }
-.salah-card.checked .prayer-icon { filter: drop-shadow(0 0 6px rgba(46, 229, 157, 0.4)); }
-.salah-card.checked .prayer-name { color: var(--emerald); }
-.salah-card.checked::after {
-  content: "✓";
-  position: absolute;
-  top: 8px; right: 10px;
-  font-size: 0.75rem;
+
+.unaided-mini-badge strong { color: var(--emerald); }
+
+/* ---------- Bar stats pills ---------- */
+.bar-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.bar-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid var(--border-hi);
+  background: var(--bg-card);
+}
+
+.bar-pill--low {
+  border-color: var(--emerald-bd);
+  color: var(--emerald);
+  background: var(--emerald-bg);
+}
+
+.bar-pill--high {
+  border-color: var(--gold-bd);
+  color: var(--gold);
+  background: var(--gold-bg);
+}
+
+/* ---------- Trajectory & Projection ---------- */
+.proj-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space);
+  padding: var(--space-lg);
+}
+
+.proj-card--ok {
+  border-color: var(--emerald-bd);
+  background: linear-gradient(135deg, var(--bg-card), var(--emerald-bg));
+}
+
+.proj-card--danger {
+  border-color: rgba(255,107,107,0.4);
+  background: linear-gradient(135deg, var(--bg-card), rgba(255,107,107,0.06));
+}
+
+.proj-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-mute);
+}
+
+.proj-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--emerald);
+  line-height: 1.2;
+}
+
+.proj-card--danger .proj-value { color: var(--danger); }
+
+.proj-value--big { font-size: 2rem; }
+
+.proj-unit {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.proj-sub {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.proj-progress {
+  margin-top: 4px;
+}
+
+/* ---------- Today's Plan ---------- */
+.plan-grid {
+  display: grid;
+  gap: var(--space-md);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 600px) {
+  .plan-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 900px) {
+  .plan-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.plan-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+  transition: border-color var(--transition);
+}
+
+.plan-card:hover { border-color: var(--border-hi); }
+
+.plan-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space);
+  margin-bottom: var(--space-md);
+}
+
+.plan-icon { font-size: 1.3rem; }
+
+.plan-title {
   font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.plan-bar {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--text-mute);
+  white-space: nowrap;
+}
+
+.plan-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plan-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space);
+  padding: 8px 10px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.plan-item:hover {
+  border-color: var(--emerald-bd);
+  background: var(--emerald-bg);
+}
+
+.plan-item.done {
+  border-color: var(--emerald-bd);
+  background: var(--emerald-bg);
+}
+
+.plan-item.done .plan-check {
   color: var(--emerald);
 }
 
-/* Friday Jumu'ah row */
-.salah-extra {
-  display: flex;
-  justify-content: center;
-  margin-top: var(--space-md);
+.plan-item.done .plan-text {
+  text-decoration: line-through;
+  color: var(--text-mute);
 }
-.salah-extra .salah-card { width: 100%; max-width: 260px; }
 
-/* ---------- Learning blocks ---------- */
-.learning-blocks {
+.plan-check {
+  font-size: 1rem;
+  color: var(--text-mute);
+  flex-shrink: 0;
+  line-height: 1.4;
+  transition: color var(--transition);
+}
+
+.plan-text {
+  color: var(--text);
+}
+
+/* ---------- Overdue & Pending ---------- */
+.overdue-section .section-title .icon { filter: drop-shadow(0 0 6px rgba(255,107,107,0.3)); }
+
+.overdue-card {
+  border-color: rgba(255,107,107,0.3);
+  background: linear-gradient(135deg, var(--bg-card), rgba(255,107,107,0.04));
+}
+
+.overdue-title {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.overdue-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space);
+}
+
+.overdue-item {
+  padding: var(--space) var(--space-md);
+  background: var(--bg-elev);
+  border: 1px solid rgba(255,107,107,0.2);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--danger);
+}
+
+.overdue-problem {
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.overdue-meta {
+  font-size: 0.78rem;
+  color: var(--text-mute);
+}
+
+.overdue-days {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* ---------- Help-level badges ---------- */
+.hl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.hl-badge--alone {
+  background: var(--emerald-bg);
+  color: var(--emerald);
+  border: 1px solid var(--emerald-bd);
+}
+
+.hl-badge--hint {
+  background: var(--gold-bg);
+  color: var(--gold);
+  border: 1px solid var(--gold-bd);
+}
+
+.hl-badge--copilot {
+  background: rgba(255,165,0,0.10);
+  color: #ffa500;
+  border: 1px solid rgba(255,165,0,0.3);
+}
+
+/* ---------- Unaided stats card ---------- */
+.unaided-stats-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
 }
 
-.learning-block {
+.unaided-row {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-md);
-  padding: var(--space-md);
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  user-select: none;
-  transition: all var(--transition);
-}
-
-.learning-block:hover { background: var(--bg-card-hi); border-color: var(--border-hi); }
-.learning-block:active { transform: scale(0.99); }
-
-.learning-block .block-check {
-  width: 26px;
-  height: 26px;
-  flex-shrink: 0;
-  border-radius: 8px;
-  border: 2px solid var(--border-hi);
-  display: flex;
   align-items: center;
-  justify-content: center;
-  color: transparent;
-  background: transparent;
-  transition: all var(--transition);
 }
 
-.learning-block .block-check svg { width: 14px; height: 14px; display: block; }
-
-.learning-block .block-info { flex: 1; min-width: 0; }
-.learning-block .block-title { font-weight: 600; color: var(--text); }
-.learning-block .block-meta { font-size: 0.78rem; color: var(--text-mute); margin-top: 2px; }
-
-.learning-block.done { background: var(--emerald-bg); border-color: var(--emerald-bd); }
-.learning-block.done .block-check { background: var(--emerald); border-color: var(--emerald); color: #06231b; }
-.learning-block.done .block-title { color: var(--emerald); }
-
-.learning-total {
-  margin-top: var(--space-md);
-  font-weight: 700;
-  text-align: center;
+.unaided-percent-badge {
+  margin-left: auto;
+  font-size: 0.88rem;
   color: var(--text-dim);
-  min-height: 1.2em;
+  padding: 4px 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--emerald-bd);
+  border-radius: 999px;
 }
 
-/* ---------- Form rows / groups (DSA + review forms) ---------- */
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-md);
+.unaided-percent-badge strong {
+  color: var(--emerald);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.unaided-progress {
+  height: 16px;
+}
+
+/* ---------- Historical Charts ---------- */
+.chart-card {
+  padding: var(--space-lg);
+}
+
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 160px;
+  padding-bottom: 24px;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 @media (min-width: 600px) {
-  .form-row { grid-template-columns: repeat(2, 1fr); }
+  .chart-bars { gap: 10px; }
 }
 
-.form-group { margin-bottom: var(--space-md); }
-
-.form-group label {
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-mute);
-  margin-bottom: 6px;
-}
-
-/* ---------- DSA difficulty badges ---------- */
-.diff-badge {
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 999px;
-  border: 1px solid currentColor;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.problem-item .p-head {
+.chart-col {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-md);
+  flex: 1 1 0;
+  min-width: 32px;
+  height: 100%;
+  justify-content: flex-end;
 }
-.problem-item .p-head .p-name { flex: 1; min-width: 0; }
 
-/* ---------- Journal ---------- */
-.journal-section { margin-bottom: var(--space-md); }
+.chart-bar-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
 
-.journal-section label {
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.chart-bar {
+  width: 100%;
+  max-width: 36px;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 4px;
+  min-height: 4px;
+  transition: height 400ms cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+}
+
+.chart-bar--emerald {
+  background: linear-gradient(180deg, var(--emerald), var(--emerald-dim));
+}
+
+.chart-bar--gold {
+  background: linear-gradient(180deg, var(--gold), var(--gold-dim));
+}
+
+.chart-bar--empty {
+  background: var(--bg-elev);
+  border: 1px dashed var(--border);
+}
+
+.chart-val {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--bg);
+  text-shadow: none;
+}
+
+.chart-bar--empty .chart-val {
   color: var(--text-mute);
-  margin-bottom: 6px;
+  font-size: 0.8rem;
+}
+
+.chart-date {
+  font-size: 0.62rem;
+  color: var(--text-mute);
+  margin-top: 6px;
+  white-space: nowrap;
 }
