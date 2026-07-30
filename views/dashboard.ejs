@@ -10,15 +10,21 @@
 <body>
 
   <!-- ============================== HERO ============================== -->
-  <header class="app-header">
+  <header class="app-header hero-header">
     <div class="container">
       <div class="row row-wrap" style="justify-content:space-between;">
         <div>
           <div class="greeting">Bismillah, <span class="accent"><%= user.username %></span> 🌙</div>
           <div class="date-line"><%= today.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) %></div>
         </div>
-        <a class="logout-link" href="/logout">Sign out</a>
+        <div class="row" style="gap:10px;">
+          <% if (todayProgress.mode_used) { %>
+            <span class="mode-badge"><%= todayProgress.mode_used === 'office' ? '🏢 Office' : '🏠 Laptop' %></span>
+          <% } %>
+          <a class="logout-link" href="/logout">Sign out</a>
+        </div>
       </div>
+
       <div class="mt">
         <div class="progress-label">
           <span>12-Week Journey · Day <%= activeDayCount %> of 84</span>
@@ -26,6 +32,7 @@
         </div>
         <div class="progress-wrap"><div class="progress-bar" style="width:<%= Math.min(100, (activeDayCount / 84) * 100) %>%"></div></div>
       </div>
+
       <div class="streak-badges header-streaks mt">
         <span class="streak-badge salah"><span class="fire">🔥</span> Salah · <%= salahStreak %></span>
         <span class="streak-badge dsa"><span class="fire">🔥</span> DSA · <%= dsaStreak %></span>
@@ -33,6 +40,7 @@
         <span class="streak-badge" style="border-color:var(--gold-bd);color:var(--gold)">📊 Focus · <%= focusScore %>%</span>
         <span class="streak-badge" style="border-color:var(--emerald-bd);color:var(--emerald)">🎯 <%= milestoneNext.icon %> <%= milestoneNext.pct %>%</span>
       </div>
+
       <div class="week-stats mt">
         <div class="week-stat"><div class="ws-num"><%= weekStats.salah_complete_days || 0 %></div><div class="ws-label">Salah</div></div>
         <div class="week-stat"><div class="ws-num"><%= weekStats.dsa_days || 0 %></div><div class="ws-label">DSA</div></div>
@@ -40,16 +48,24 @@
         <div class="week-stat"><div class="ws-num"><%= weekStats.active_days || 0 %></div><div class="ws-label">Active</div></div>
         <div class="week-stat"><div class="ws-num"><%= weekStats.total_days || 0 %></div><div class="ws-label">Total/7</div></div>
       </div>
+
+      <!-- Quick-edit controls -->
+      <div class="row row-wrap mt" style="gap:10px;">
+        <button class="btn btn-ghost btn-sm" onclick="openPastDayEditor()">🗓️ Edit Past Day</button>
+        <button class="btn btn-ghost btn-sm" onclick="setTodayBar('low')">🟢 Low Bar Today</button>
+        <button class="btn btn-ghost btn-sm" onclick="setTodayBar('high')">🟡 High Bar Today</button>
+        <button class="btn btn-ghost btn-sm" onclick="setTodayBar('none')">⚪ Clear Bar</button>
+      </div>
     </div>
   </header>
 
-  <!-- ============================== TAB NAV ============================== -->
-  <nav class="tab-nav" id="tabNav">
+  <!-- ============================== TAB NAV (desktop top) ============================== -->
+  <nav class="tab-nav tab-nav--top" id="tabNav">
     <div class="container">
       <div class="tab-bar">
         <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
-        <button class="tab-btn" data-tab="progress">📈 Progress</button>
         <button class="tab-btn" data-tab="journal">📝 Journal</button>
+        <button class="tab-btn" data-tab="progress">📈 Progress</button>
         <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
       </div>
     </div>
@@ -61,8 +77,9 @@
     <div class="tab-content active" id="tab-dashboard">
 
       <!-- TRAJECTORY -->
-      <section class="section">
-        <div class="section-title"><span class="icon">📈</span> Trajectory & Projection</div>
+      <% if (projection) { %>
+      <section class="section" id="trajectory">
+        <div class="section-title"><span class="icon">📈</span> Trajectory &amp; Projection</div>
         <div class="grid cols-3">
           <div class="card proj-card">
             <div class="proj-label">Current Pace</div>
@@ -75,71 +92,101 @@
               <div class="progress-bar" style="width:<%= Math.min(100, (projection.projectedFinishDays / 84) * 100) %>%"></div>
             </div>
           </div>
-          <div class="card proj-card <%= projection.restBudget < 0 ? 'proj-danger' : 'proj-ok' %>">
+          <div class="card proj-card <%= projection.restBudget < 0 ? 'proj-card--danger' : 'proj-card--ok' %>">
             <div class="proj-label">Rest Day Budget</div>
-            <div class="proj-value"><%= projection.restBudget > 0 ? projection.restBudget + ' days' : '⚠️ Over!' %></div>
+            <div class="proj-value"><%= projection.restBudget >= 0 ? projection.restBudget + ' days' : '⚠️ Over!' %></div>
           </div>
         </div>
         <% if (projection.needToSpeedUp) { %>
-          <div class="card mt proj-danger-card">⚠️ <strong>Need to speed up.</strong> At current pace you'll finish on Day <%= projection.projectedFinishDays %>. Increase DSA/day to finish on time.</div>
+          <div class="card mt proj-card--danger">⚠️ <strong>Need to speed up.</strong> At current pace you'll finish on Day <%= projection.projectedFinishDays %>. Increase DSA/day to finish on time.</div>
         <% } else { %>
-          <div class="card mt proj-ok-card">✅ On track. <%= projection.restBudget %> rest days available. You can afford a break.</div>
+          <div class="card mt proj-card--ok">✅ On track. <%= projection.restBudget %> rest days available. You can afford a break.</div>
         <% } %>
       </section>
+      <% } %>
 
       <!-- MILESTONE -->
-      <section class="section">
+      <section class="section" id="milestone">
         <div class="section-title"><span class="icon"><%= milestoneNext.icon %></span> Next Milestone</div>
         <div class="card milestone-card">
-          <div class="row" style="align-items:center;gap:16px;">
+          <div class="row" style="align-items:center;gap:16px;flex-wrap:wrap;">
             <div class="milestone-ring" style="--pct:<%= milestoneNext.pct %>">
               <span class="mr-num"><%= milestoneNext.pct %>%</span>
             </div>
-            <div>
+            <div style="flex:1;min-width:200px;">
               <div class="milestone-name"><%= milestoneNext.icon %> <%= milestoneNext.name %></div>
-              <div class="milestone-desc"><%= milestoneNext.label %> · <%= milestoneNext.current %>/<%= milestoneNext.threshold %></div>
+              <div class="milestone-desc"><%= milestoneNext.label %> · <strong><%= milestoneNext.current %>/<%= milestoneNext.threshold %></strong></div>
+              <div class="progress-wrap mt" style="height:8px;max-width:300px;">
+                <div class="progress-bar" style="width:<%= milestoneNext.pct %>%"></div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       <!-- TODAY'S PLAN -->
-      <section class="section">
-        <div class="section-title"><span class="icon">📋</span> Today's Plan</div>
+      <% if (todayPlan) { %>
+      <section class="section" id="today-plan">
+        <div class="section-title"><span class="icon">📋</span> Today's Plan <button class="hist-btn" onclick="toggleHistory('plan')">⋯ History</button></div>
         <div class="card">
           <div class="plan-bars">
             <div class="plan-bar">🟢 <strong>Low:</strong> 1 DSA + 1 concept + 1 career action</div>
             <div class="plan-bar">🟡 <strong>High:</strong> 4 DSA + full Spring Boot + full career</div>
           </div>
-          <% if (todayPlan && todayPlan.dsa && todayPlan.dsa.length) { %>
+          <% if (todayPlan.dsa && todayPlan.dsa.length) { %>
             <div class="mt plan-list"><strong>DSA:</strong>
               <% todayPlan.dsa.forEach(function(p){ %><span class="plan-chip"><%= p %></span><% }); %>
             </div>
           <% } %>
-          <% if (todayPlan && todayPlan.spring_boot) { %><div class="mt plan-list"><strong>Spring Boot:</strong> <%= todayPlan.spring_boot %></div><% } %>
-          <% if (todayPlan && todayPlan.system_design) { %><div class="mt plan-list"><strong>System Design:</strong> <%= todayPlan.system_design %></div><% } %>
-          <% if (todayPlan && todayPlan.career) { %><div class="mt plan-list"><strong>Career:</strong> <%= todayPlan.career %></div><% } %>
-          <% if (todayPlan && todayPlan.devops) { %><div class="mt plan-list"><strong>DevOps:</strong> <%= todayPlan.devops %></div><% } %>
+          <% if (todayPlan.spring_boot) { %><div class="mt plan-list"><strong>Spring Boot:</strong> <%= todayPlan.spring_boot %></div><% } %>
+          <% if (todayPlan.system_design) { %><div class="mt plan-list"><strong>System Design:</strong> <%= todayPlan.system_design %></div><% } %>
+          <% if (todayPlan.career) { %><div class="mt plan-list"><strong>Career:</strong> <%= todayPlan.career %></div><% } %>
+          <% if (todayPlan.devops) { %><div class="mt plan-list"><strong>DevOps:</strong> <%= todayPlan.devops %></div><% } %>
         </div>
       </section>
+      <% } %>
 
       <!-- OVERDUE -->
-      <% if (overdueRevisions && overdueRevisions.length) { %>
-      <section class="section">
-        <div class="section-title"><span class="icon">⚠️</span> Overdue Revisions</div>
+      <% if ((overdueRevisions && overdueRevisions.length) || (unaidedQueue && unaidedQueue.length)) { %>
+      <section class="section overdue-section" id="overdue">
+        <div class="section-title"><span class="icon">⚠️</span> Overdue &amp; Pending <span class="hint">Handle these first</span></div>
+        <% if (overdueRevisions && overdueRevisions.length) { %>
         <div class="card overdue-card">
-          <% overdueRevisions.forEach(function(r){ %>
-            <div class="overdue-item">🔴 <%= r.problem %> — <span class="text-mute"><%= r.days_overdue %>d overdue</span></div>
-          <% }); %>
+          <div class="card-title overdue-title">📅 Overdue Revisions</div>
+          <div class="overdue-list">
+            <% overdueRevisions.forEach(function(r){ %>
+              <div class="overdue-item">
+                <div class="overdue-problem">🔴 <%= r.problem %></div>
+                <div class="overdue-meta"><%= r.days_overdue %>d overdue</div>
+              </div>
+            <% }); %>
+          </div>
         </div>
+        <% } %>
+        <% if (unaidedQueue && unaidedQueue.length) { %>
+        <div class="card overdue-card mt">
+          <div class="card-title overdue-title">🔁 Unaided Re-Solve Queue</div>
+          <div class="overdue-list">
+            <% unaidedQueue.forEach(function(item){ %>
+              <div class="overdue-item">
+                <div class="overdue-problem"><%= item.problem %></div>
+                <div class="overdue-meta">Re-solve without help</div>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+        <% } %>
       </section>
       <% } %>
 
       <!-- SURVIVAL LAYER -->
       <section class="section" id="survival">
-        <div class="section-title"><span class="icon">🌅</span> Survival Layer</div>
+        <div class="section-title">
+          <span class="icon">🌅</span> Survival Layer
+          <button class="hist-btn" onclick="toggleHistory('survival')">⋯ History</button>
+        </div>
         <div class="grid cols-3">
-          <% ['survival_layer:⏰:Alarm & Out','tahajjud:🌌:Tahajjud','fajr:🕌:Fajr','duha:☀️:Adhkar & Duha','fasting:🌑:Fasting'].forEach(function(item){ var p=item.split(':'); %>
+          <% ['survival_layer:⏰:Alarm & Out of Bed','tahajjud:🌌:Tahajjud','fajr:🕌:Fajr on Time','duha:☀️:Adhkar & Duha','fasting:🌑:Fasting (Sunnah)'].forEach(function(item){ var p=item.split(':'); %>
             <div class="toggle-card" data-field="<%= p[0] %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[p[0]] %>">
               <div class="tc-head"><span class="tc-icon"><%= p[1] %></span><span class="tc-label"><%= p[2] %></span><span class="tc-check"></span></div>
             </div>
@@ -149,8 +196,11 @@
 
       <!-- SALAH -->
       <section class="section" id="salah">
-        <div class="section-title"><span class="icon">🕌</span> Salah Tracker <span class="hint">🔥 <%= salahStreak %></span></div>
-        <div class="celebrate" id="salah-celebrate"><span class="emoji">🎉</span><span>All 5 prayers complete! MashaAllah!</span></div>
+        <div class="section-title">
+          <span class="icon">🕌</span> Salah Tracker <span class="hint">🔥 <%= salahStreak %></span>
+          <button class="hist-btn" onclick="toggleHistory('salah')">⋯ History</button>
+        </div>
+        <div class="celebrate" id="salah-celebrate"><span class="emoji">🎉</span><span>All 5 prayers complete! MashaAllah — keep the streak alive!</span></div>
         <div class="grid cols-4">
           <% ['fajr:🌅:Fajr','dhuhr:🌞:Dhuhr','asr:🌇:Asr','maghrib:🌆:Maghrib','isha:🌙:Isha'].forEach(function(item){ var p=item.split(':'); %>
             <div class="toggle-card" data-field="<%= p[0] %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[p[0]] %>">
@@ -166,8 +216,11 @@
       </section>
 
       <!-- PRIME + TRAINING -->
-      <section class="section">
-        <div class="section-title"><span class="icon">📖</span> Prime & Training</div>
+      <section class="section" id="prime">
+        <div class="section-title">
+          <span class="icon">📖</span> Prime &amp; Training
+          <button class="hist-btn" onclick="toggleHistory('prime')">⋯ History</button>
+        </div>
         <div class="grid cols-3">
           <% ['morning_reading:📚:Morning Reading','targets_set:🎯:Targets Set','house_task:🏠:House Task','mma:🥊:MMA Session','post_workout_meal:🍗:Post-Workout Meal','shower:🚿:Shower'].forEach(function(item){ var p=item.split(':'); %>
             <div class="toggle-card" data-field="<%= p[0] %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[p[0]] %>">
@@ -179,32 +232,71 @@
 
       <!-- LEARNING BLOCKS -->
       <section class="section" id="blocks">
-        <div class="section-title"><span class="icon">🧠</span> Learning Blocks</div>
+        <div class="section-title">
+          <span class="icon">🧠</span> Learning Blocks <span class="hint"><span id="blocks-done">0</span>/4 done</span>
+          <button class="hist-btn" onclick="toggleHistory('blocks')">⋯ History</button>
+        </div>
         <div class="grid cols-4">
-          <% ['block1_done:🟢:Block 1:DSA','block2_done:🔵:Block 2:Spring Boot','block3_done:🟣:Block 3:Sys Design','block4_done:🟡:Block 4:Revision'].forEach(function(item){ var p=item.split(':'); %>
-            <div class="toggle-card" data-field="<%= p[0] %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[p[0]] %>">
-              <div class="tc-head"><span class="tc-icon"><%= p[1] %></span><span class="tc-label"><%= p[2] %></span><span class="tc-check"></span></div>
-              <div class="tc-sub"><%= p[3] %></div>
+          <% var blockDefs = (settings && settings.learning_blocks && settings.learning_blocks.length === 4) ? settings.learning_blocks : ['DSA','Spring Boot','System Design','Revision']; %>
+          <% ['block1_done','block2_done','block3_done','block4_done'].forEach(function(f, i){ %>
+            <div class="toggle-card" data-field="<%= f %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[f] %>">
+              <div class="tc-head">
+                <span class="tc-icon"><%= ['🟢','🔵','🟣','🟡'][i] %></span>
+                <span class="tc-label">Block <%= i+1 %></span>
+                <span class="tc-check"></span>
+              </div>
+              <div class="tc-sub"><%= blockDefs[i] %></div>
             </div>
           <% }); %>
         </div>
       </section>
 
-      <!-- SHIELDS -->
+      <!-- SHIELDS — Hexagon visual -->
       <section class="section" id="shields">
-        <div class="section-title"><span class="icon">🛡️</span> Shields</div>
-        <div class="grid cols-3">
-          <% ['ghusl_rule:🛡️:Ghusl Rule','khalwah_shield:🛡️:Khalwah Shield','night_protocol:🛡️:Night Protocol','phone_out_of_bedroom:🛡️:Phone Out','lower_gaze:🛡️:Lower Gaze','no_new_riba:🛡️:No New Riba'].forEach(function(item){ var p=item.split(':'); %>
-            <div class="toggle-card" data-field="<%= p[0] %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[p[0]] %>">
-              <div class="tc-head"><span class="tc-icon"><%= p[1] %></span><span class="tc-label"><%= p[2] %></span><span class="tc-check"></span></div>
-            </div>
-          <% }); %>
+        <div class="section-title">
+          <span class="icon">🛡️</span> Shields
+          <button class="hist-btn" onclick="toggleHistory('shields')">⋯ History</button>
+        </div>
+        <div class="card shield-card">
+          <div class="shield-hex-wrap">
+            <svg class="shield-hex" viewBox="0 0 200 200" id="shieldHex">
+              <!-- 6 segments — path drawn via JS based on completion -->
+              <circle cx="100" cy="100" r="38" class="shield-core" id="shieldCore" />
+              <% var shieldFields = ['ghusl_rule','khalwah_shield','night_protocol','phone_out_of_bedroom','lower_gaze','no_new_riba']; %>
+              <% var shieldLabels = ['Ghusl Rule','Khalwah Shield','Night Protocol','Phone Out','Lower Gaze','No New Riba']; %>
+              <% shieldFields.forEach(function(f, i){ %>
+                <path class="shield-seg" id="seg-<%= i %>" data-field="<%= f %>" data-idx="<%= i %>"
+                      d="" fill="none" stroke-width="18" stroke-linecap="round" />
+              <% }); %>
+            </svg>
+            <div class="shield-center-text" id="shieldText">Loading…</div>
+          </div>
+          <div class="shield-legend mt">
+            <% shieldFields.forEach(function(f, i){ %>
+              <div class="shield-leg-item" data-field="<%= f %>" data-idx="<%= i %>">
+                <span class="shield-leg-dot" id="dot-<%= i %>"></span>
+                <span class="shield-leg-label"><%= shieldLabels[i] %></span>
+                <span class="shield-leg-status" id="stat-<%= i %>"></span>
+              </div>
+            <% }); %>
+          </div>
+          <!-- Hidden toggle cards keep AJAX working; visual is the hexagon -->
+          <div class="hidden">
+            <% shieldFields.forEach(function(f){ %>
+              <div class="toggle-card" data-field="<%= f %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[f] %>">
+                <div class="tc-head"><span class="tc-icon">🛡️</span><span class="tc-label"><%= f %></span><span class="tc-check"></span></div>
+              </div>
+            <% }); %>
+          </div>
         </div>
       </section>
 
       <!-- EVENING RESET -->
       <section class="section" id="evening">
-        <div class="section-title"><span class="icon">🌙</span> Evening Reset</div>
+        <div class="section-title">
+          <span class="icon">🌙</span> Evening Reset
+          <button class="hist-btn" onclick="toggleHistory('evening')">⋯ History</button>
+        </div>
         <div class="grid cols-3">
           <% ['haldi_doodh:🥛:Haldi Doodh','sleep_on_wudu:💧:Sleep on Wudu','evening_reset:✅:Evening Reset Done'].forEach(function(item){ var p=item.split(':'); %>
             <div class="toggle-card" data-field="<%= p[0] %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[p[0]] %>">
@@ -216,43 +308,113 @@
 
       <!-- EXAM TRACKER -->
       <section class="section" id="exam">
-        <div class="section-title"><span class="icon">📜</span> Claude Dev Cert <span class="hint"><%= examStats.daysUntilCert %> days to Oct 1</span></div>
+        <div class="section-title">
+          <span class="icon">📜</span> Claude Dev Cert
+          <span class="hint"><%= examStats.daysUntilCert %> days to Oct 1</span>
+        </div>
         <div class="grid cols-3">
-          <div class="card"><div class="proj-label">Total Study</div><div class="proj-value"><%= Math.round(examStats.totalMinutes / 60 * 10) / 10 %>h</div></div>
-          <div class="card"><div class="proj-label">Topics</div><div class="proj-value"><%= examStats.topics %></div></div>
-          <div class="card"><div class="proj-label">Readiness</div><div class="proj-value"><%= examStats.topScore %>/10</div></div>
+          <div class="card exam-stat"><div class="proj-label">Total Study</div><div class="proj-value"><%= (Math.round(examStats.totalMinutes / 60 * 10) / 10) %>h</div></div>
+          <div class="card exam-stat"><div class="proj-label">Topics</div><div class="proj-value"><%= examStats.topics %></div></div>
+          <div class="card exam-stat"><div class="proj-label">Readiness</div><div class="proj-value"><%= examStats.topScore %>/10</div></div>
         </div>
         <div class="card mt">
           <div class="card-title">Quick Log Study Session</div>
           <div class="grid cols-2">
-            <input class="input" type="text" id="exam-topic" placeholder="Topic" />
+            <input class="input" type="text" id="exam-topic" placeholder="Topic studied" />
             <div class="grid cols-2" style="grid-template-columns:1fr 1fr;">
               <input class="input" type="number" id="exam-mins" placeholder="Minutes" min="0" />
               <input class="input" type="number" id="exam-score" placeholder="Ready 1-10" min="1" max="10" />
             </div>
           </div>
+          <div class="field mt">
+            <label class="field-label">Readiness Slider</label>
+            <input type="range" id="exam-slider" min="1" max="10" value="5" class="range-slider" oninput="document.getElementById('exam-score').value=this.value;" />
+          </div>
           <textarea class="input mt" id="exam-notes" placeholder="Notes (optional)" style="min-height:60px;"></textarea>
           <button class="btn btn-primary mt" onclick="addExamSession()">+ Log Session</button>
         </div>
         <% if (examData && examData.length) { %>
-          <div class="card mt">
-            <div class="card-title">Recent Sessions</div>
-            <% examData.forEach(function(e){ %>
-              <div class="problem-item">
-                <div class="p-name"><%= e.topic %> — <%= e.minutes_studied %> min</div>
-                <div class="p-meta"><span><%= new Date(e.date).toLocaleDateString() %></span><span>Ready: <%= e.ready_score %>/10</span></div>
-                <% if (e.notes) { %><div class="p-notes"><%= e.notes %></div><% } %>
-              </div>
-            <% }); %>
-          </div>
+        <div class="card mt">
+          <div class="card-title">Recent Sessions</div>
+          <% examData.forEach(function(e){ %>
+            <div class="problem-item">
+              <div class="p-name"><%= e.topic %> — <%= e.minutes_studied %> min</div>
+              <div class="p-meta"><span><%= new Date(e.date).toLocaleDateString() %></span><span>Ready: <%= e.ready_score %>/10</span></div>
+              <% if (e.notes) { %><div class="p-notes"><%= e.notes %></div><% } %>
+            </div>
+          <% }); %>
+        </div>
         <% } %>
+      </section>
+
+      <!-- WEEKLY REVIEW -->
+      <section class="section" id="weekly-review">
+        <div class="section-title"><span class="icon">📅</span> Weekly Review</div>
+        <div class="card">
+          <% if (review && review.content) { %>
+            <div class="problem-item">
+              <div class="p-name">Week of <%= review.week_start ? new Date(review.week_start).toLocaleDateString() : 'this week' %></div>
+              <div class="p-notes"><%= review.content %></div>
+            </div>
+          <% } else { %>
+            <div class="empty-state">No weekly review yet. Write one on Friday evening.</div>
+          <% } %>
+        </div>
       </section>
 
     </div><!-- /tab-dashboard -->
 
+    <!-- ============================== TAB: JOURNAL ============================== -->
+    <div class="tab-content" id="tab-journal">
+      <section class="section">
+        <div class="section-title"><span class="icon">📝</span> Journal</div>
+        <div class="card">
+          <div class="grid cols-2">
+            <div>
+              <label class="field-label">Entry Type</label>
+              <select class="select" id="j-type">
+                <option value="brain_dump">Brain Dump</option>
+                <option value="wins">3 Wins</option>
+                <option value="targets">3 Targets</option>
+                <option value="gratitude">Gratitude</option>
+              </select>
+            </div>
+          </div>
+          <textarea class="input mt" id="j-content" placeholder="Write here..." style="min-height:120px;"></textarea>
+          <button class="btn btn-gold mt" onclick="addJournal()">💾 Save Journal</button>
+        </div>
+        <div class="card mt">
+          <div class="card-title">All Entries</div>
+          <% if (allJournal && allJournal.length) { %>
+            <% allJournal.forEach(function(e){ %>
+              <div class="problem-item">
+                <div class="p-name"><%= e.entry_type ? e.entry_type.replace(/_/g,' ') : 'entry' %></div>
+                <div class="p-meta"><span><%= new Date(e.date).toLocaleDateString() %></span></div>
+                <div class="p-notes"><%= e.content %></div>
+              </div>
+            <% }); %>
+          <% } else { %>
+            <div class="empty-state">No journal entries yet.</div>
+          <% } %>
+        </div>
+      </section>
+    </div><!-- /tab-journal -->
+
     <!-- ============================== TAB: PROGRESS ============================== -->
     <div class="tab-content" id="tab-progress">
 
+      <!-- All-time stats -->
+      <section class="section">
+        <div class="section-title"><span class="icon">📊</span> All-Time Stats</div>
+        <div class="grid cols-4">
+          <div class="stat-box green"><div class="sb-num"><%= dsaCount %></div><div class="sb-label">DSA Solved</div></div>
+          <div class="stat-box yellow"><div class="sb-num"><%= salahStreak %></div><div class="sb-label">Salah Streak</div></div>
+          <div class="stat-box"><div class="sb-num"><%= activeDayCount %></div><div class="sb-label">Active Days</div></div>
+          <div class="stat-box green"><div class="sb-num"><%= disciplineScore %>%</div><div class="sb-label">Discipline</div></div>
+        </div>
+      </section>
+
+      <!-- DSA Unaided Tracking -->
       <section class="section">
         <div class="section-title"><span class="icon">📊</span> DSA Unaided Tracking</div>
         <div class="card">
@@ -266,19 +428,25 @@
         </div>
       </section>
 
+      <!-- Streak Calendar -->
       <section class="section">
         <div class="section-title"><span class="icon">🔥</span> Streak Calendar (30 days)</div>
         <div class="card">
           <div class="streak-grid" id="streakGrid">
             <% (streakCalendar || []).forEach(function(d){ %>
-              <div class="streak-cell <%= d.active_day ? 'active' : 'inactive' %>" title="<%= new Date(d.date).toLocaleDateString() %> <%= d.active_day ? '✅ Active' : '— rest' %>">
+              <div class="streak-cell <%= d.active_day ? 'active' : 'inactive' %>" title="<%= new Date(d.date).toLocaleDateString() %> <%= d.active_day ? '✅ Active' : '— rest day' %>">
                 <%= new Date(d.date).getDate() %>
               </div>
             <% }); %>
           </div>
+          <div class="streak-legend mt">
+            <span class="streak-legend-item"><span class="streak-cell active" style="width:14px;height:14px;display:inline-block;border-radius:4px;"></span> Active</span>
+            <span class="streak-legend-item"><span class="streak-cell inactive" style="width:14px;height:14px;display:inline-block;border-radius:4px;"></span> Rest</span>
+          </div>
         </div>
       </section>
 
+      <!-- DSA Table -->
       <section class="section">
         <div class="section-title"><span class="icon">💻</span> DSA Problems (<%= dsaCount %>)</div>
         <div class="card">
@@ -293,7 +461,9 @@
           </div>
           <div class="dsa-table-wrap mt">
             <table class="dsa-table" id="dsaTable">
-              <thead><tr><th>#</th><th>Problem</th><th>Pattern</th><th>Diff</th><th>Date</th><th>Help</th><th>Time</th><th></th></tr></thead>
+              <thead>
+                <tr><th>#</th><th>Problem</th><th>Pattern</th><th>Diff</th><th>Date</th><th>Help</th><th>Time</th><th>Notes</th><th></th></tr>
+              </thead>
               <tbody>
                 <% (allDsa || []).forEach(function(p, i){ %>
                   <tr class="dsa-row" data-diff="<%= p.difficulty || 'easy' %>" data-help="<%= p.help_level || 'alone' %>">
@@ -301,10 +471,14 @@
                     <td><%= p.problem_name %></td>
                     <td><%= p.pattern || '—' %></td>
                     <td><span class="diff-<%= p.difficulty || 'easy' %>"><%= (p.difficulty || '').toUpperCase() %></span></td>
-                    <td><%= new Date(p.date).toLocaleDateString() %></td>
+                    <td><%= p.date ? new Date(p.date).toLocaleDateString() : '—' %></td>
                     <td><%= p.help_level === 'alone' ? '🟢' : p.help_level === 'hint' ? '🟡' : '🟠' %></td>
                     <td><%= p.time_minutes || '—' %></td>
-                    <td><button class="btn-ghost btn-sm" onclick="editDsa(<%= p.id %>)">Edit</button> <button class="btn-ghost btn-sm" onclick="deleteDsa(<%= p.id %>)">Del</button></td>
+                    <td class="dsa-notes-cell"><%= p.notes || '—' %></td>
+                    <td>
+                      <button class="btn-ghost btn-sm" onclick="editDsa(<%= p.id %>)">Edit</button>
+                      <button class="btn-ghost btn-sm" onclick="deleteDsa(<%= p.id %>)">Del</button>
+                    </td>
                   </tr>
                 <% }); %>
               </tbody>
@@ -313,81 +487,80 @@
         </div>
       </section>
 
+      <!-- Historical Charts -->
       <section class="section">
         <div class="section-title"><span class="icon">📉</span> Historical Charts</div>
         <% if (history && history.dsa && history.dsa.length) { %>
-          <div class="card chart-card mt">
-            <div class="card-title">DSA per day (14 days)</div>
-            <div class="chart-bars">
-              <% var maxDsa = Math.max.apply(null, history.dsa.map(function(d){ return d.count || 0; })); if(maxDsa===0) maxDsa=1; %>
-              <% history.dsa.forEach(function(d){ %>
-                <div class="chart-col"><div class="chart-bar-fill" style="height:<%= ((d.count||0)/maxDsa)*100 %>%"></div><div class="chart-label"><%= new Date(d.date).getDate() %></div></div>
-              <% }); %>
-            </div>
+        <div class="card chart-card mt">
+          <div class="card-title">DSA per day (14 days)</div>
+          <div class="chart-bars">
+            <% var maxDsa = Math.max.apply(null, history.dsa.map(function(d){ return d.count || 0; })); if(maxDsa===0) maxDsa=1; %>
+            <% history.dsa.forEach(function(d){ %>
+              <div class="chart-col"><div class="chart-bar-fill" style="height:<%= ((d.count||0)/maxDsa)*100 %>%"></div><div class="chart-label"><%= new Date(d.date).getDate() %></div></div>
+            <% }); %>
           </div>
+        </div>
         <% } %>
         <% if (history && history.prayers && history.prayers.length) { %>
-          <div class="card chart-card mt">
-            <div class="card-title">Prayer completion (7 days)</div>
-            <div class="chart-bars">
-              <% history.prayers.forEach(function(d){ var count=0; if(d.fajr)count++; if(d.dhuhr)count++; if(d.asr)count++; if(d.maghrib)count++; if(d.isha)count++; %>
-                <div class="chart-col"><div class="chart-bar-fill prayer-bar" style="height:<%= (count/5)*100 %>%"></div><div class="chart-label"><%= new Date(d.date).getDate() %></div></div>
-              <% }); %>
-            </div>
+        <div class="card chart-card mt">
+          <div class="card-title">Prayer completion (7 days)</div>
+          <div class="chart-bars">
+            <% history.prayers.forEach(function(d){ var count=0; if(d.fajr)count++; if(d.dhuhr)count++; if(d.asr)count++; if(d.maghrib)count++; if(d.isha)count++; %>
+              <div class="chart-col"><div class="chart-bar-fill prayer-bar" style="height:<%= (count/5)*100 %>%"></div><div class="chart-label"><%= new Date(d.date).getDate() %></div></div>
+            <% }); %>
           </div>
+        </div>
         <% } %>
       </section>
 
     </div><!-- /tab-progress -->
-
-    <!-- ============================== TAB: JOURNAL ============================== -->
-    <div class="tab-content" id="tab-journal">
-      <section class="section">
-        <div class="section-title"><span class="icon">📝</span> Journal</div>
-        <div class="card">
-          <div class="grid cols-2">
-            <div><label class="field-label">Type</label>
-              <select class="select" id="j-type"><option value="brain_dump">Brain Dump</option><option value="wins">3 Wins</option><option value="targets">3 Targets</option></select>
-            </div>
-          </div>
-          <textarea class="input mt" id="j-content" placeholder="Write here..." style="min-height:100px;"></textarea>
-          <button class="btn btn-gold mt" onclick="addJournal()">💾 Save Journal</button>
-        </div>
-        <div class="card mt">
-          <div class="card-title">All Entries</div>
-          <% (allJournal || []).forEach(function(e){ %>
-            <div class="problem-item">
-              <div class="p-name"><%= e.entry_type.replace(/_/g,' ') %></div>
-              <div class="p-meta"><span><%= new Date(e.date).toLocaleDateString() %></span></div>
-              <div class="p-notes"><%= e.content %></div>
-            </div>
-          <% }); %>
-        </div>
-      </section>
-    </div><!-- /tab-journal -->
 
     <!-- ============================== TAB: SETTINGS ============================== -->
     <div class="tab-content" id="tab-settings">
       <section class="section">
         <div class="section-title"><span class="icon">⚙️</span> Settings</div>
         <div class="card">
-          <div class="field"><label class="field-label">Motivational Quotes</label>
-            <select class="select" id="set-quotes"><option value="true" <%= settings.quotes_toggle !== false ? 'selected' : '' %>>On</option><option value="false" <%= settings.quotes_toggle === false ? 'selected' : '' %>>Off</option></select>
+          <div class="field">
+            <label class="field-label">Motivational Quotes</label>
+            <select class="select" id="set-quotes">
+              <option value="true" <%= settings.quotes_toggle !== false ? 'selected' : '' %>>On</option>
+              <option value="false" <%= settings.quotes_toggle === false ? 'selected' : '' %>>Off</option>
+            </select>
           </div>
-          <div class="field"><label class="field-label">Chart Range</label>
-            <select class="select" id="set-chart"><option value="7" <%= settings.chart_range == 7 ? 'selected' : '' %>>7 days</option><option value="14" <%= settings.chart_range == 14 ? 'selected' : '' %>>14 days</option><option value="30" <%= settings.chart_range == 30 ? 'selected' : '' %>>30 days</option></select>
+          <div class="field">
+            <label class="field-label">Quote Mode</label>
+            <select class="select" id="set-quote-mode">
+              <option value="islamic" <%= (settings.quote_mode || 'mixed') === 'islamic' ? 'selected' : '' %>>Islamic Only</option>
+              <option value="mixed" <%= (settings.quote_mode || 'mixed') === 'mixed' ? 'selected' : '' %>>Mixed</option>
+              <option value="motivational" <%= (settings.quote_mode || 'mixed') === 'motivational' ? 'selected' : '' %>>Motivational Only</option>
+            </select>
           </div>
-          <div class="field"><label class="field-label">Dua Mode</label>
-            <select class="select" id="set-dua"><option value="none" <%= settings.dua_mode == 'none' ? 'selected' : '' %>>None</option><option value="morning" <%= settings.dua_mode == 'morning' ? 'selected' : '' %>>Morning</option><option value="night" <%= settings.dua_mode == 'night' ? 'selected' : '' %>>Night</option></select>
+          <div class="field">
+            <label class="field-label">Chart Range</label>
+            <select class="select" id="set-chart">
+              <option value="7" <%= (settings.chart_range || 14) == 7 ? 'selected' : '' %>>7 days</option>
+              <option value="14" <%= (settings.chart_range || 14) == 14 ? 'selected' : '' %>>14 days</option>
+              <option value="30" <%= (settings.chart_range || 30) == 30 ? 'selected' : '' %>>30 days</option>
+            </select>
           </div>
-          <div class="field"><label class="field-label">Learning Block Names</label>
+          <div class="field">
+            <label class="field-label">Dua Mode</label>
+            <select class="select" id="set-dua">
+              <option value="none" <%= (settings.dua_mode || 'none') == 'none' ? 'selected' : '' %>>None</option>
+              <option value="morning" <%= settings.dua_mode == 'morning' ? 'selected' : '' %>>Morning</option>
+              <option value="night" <%= settings.dua_mode == 'night' ? 'selected' : '' %>>Night</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Learning Block Names</label>
             <div class="grid cols-2">
+              <% var defBlocks = ['DSA','Spring Boot','System Design','Revision']; %>
               <% for (var b = 0; b < 4; b++) { %>
-                <input class="input" type="text" id="set-block-<%= b %>" value="<%= (settings.learning_blocks && settings.learning_blocks[b]) || ['DSA','Spring Boot','System Design','Revision'][b] %>" />
+                <input class="input" type="text" id="set-block-<%= b %>" value="<%= (settings.learning_blocks && settings.learning_blocks[b]) || defBlocks[b] %>" placeholder="Block <%= b+1 %> name" />
               <% } %>
             </div>
           </div>
-          <button class="btn btn-primary mt" onclick="saveSettings()">💾 Save Settings</button>
+          <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
         </div>
       </section>
     </div><!-- /tab-settings -->
@@ -405,6 +578,14 @@
     </div>
   </footer>
   <% } %>
+
+  <!-- BOTTOM TAB BAR (mobile) -->
+  <nav class="tab-nav tab-nav--bottom" id="tabNavBottom">
+    <button class="tab-btn active" data-tab="dashboard">📊</button>
+    <button class="tab-btn" data-tab="journal">📝</button>
+    <button class="tab-btn" data-tab="progress">📈</button>
+    <button class="tab-btn" data-tab="settings">⚙️</button>
+  </nav>
 
   <!-- DSA EDIT MODAL -->
   <div class="modal-overlay" id="dsaModal" style="display:none;">
@@ -429,6 +610,32 @@
     </div>
   </div>
 
+  <!-- PAST DAY EDIT MODAL -->
+  <div class="modal-overlay" id="pastDayModal" style="display:none;">
+    <div class="modal">
+      <div class="modal-title">Edit Past Day</div>
+      <div class="field">
+        <label class="field-label">Select Date</label>
+        <input class="input" type="date" id="past-date" />
+      </div>
+      <button class="btn btn-ghost btn-block mt" onclick="loadPastDay()">Load Day Data</button>
+      <div id="pastDayFields" class="mt" style="display:none;">
+        <div class="card-title mt">Toggles</div>
+        <div id="pastToggleList" class="grid cols-2"></div>
+        <div class="field mt">
+          <label class="field-label">Bar Hit</label>
+          <select class="select" id="past-bar">
+            <option value="none">— None</option>
+            <option value="low">🟢 Low</option>
+            <option value="high">🟡 High</option>
+          </select>
+        </div>
+        <button class="btn btn-primary btn-block mt" onclick="savePastDay()">💾 Save Changes</button>
+      </div>
+      <button class="btn btn-ghost btn-block mt" onclick="closePastDayModal()">Close</button>
+    </div>
+  </div>
+
   <!-- TOAST -->
   <div class="toast" id="toast">Saved ✓</div>
 
@@ -437,21 +644,30 @@
     "use strict";
     var todayProgress = <%- JSON.stringify(todayProgress || {}) %>;
     var allDsaData = <%- JSON.stringify(allDsa || []) %>;
+    var historyData = <%- JSON.stringify(history || {}) %>;
+    var settingsData = <%- JSON.stringify(settings || {}) %>;
 
     var toastEl = document.getElementById('toast'), toastTimer;
-    function toast(msg, isError) { toastEl.textContent = msg; toastEl.classList.toggle('error', !!isError); toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 2200); }
+    function toast(msg, isError) {
+      toastEl.textContent = msg; toastEl.classList.toggle('error', !!isError);
+      toastEl.classList.add('show'); clearTimeout(toastTimer);
+      toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 2200);
+    }
 
-    /* Tab navigation */
+    /* ===== Tab navigation ===== */
+    function activateTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+      document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+      document.querySelectorAll('.tab-btn[data-tab="'+tabName+'"]').forEach(function(b){ b.classList.add('active'); });
+      var tc = document.getElementById('tab-' + tabName);
+      if (tc) tc.classList.add('active');
+      window.scrollTo(0, 0);
+    }
     document.querySelectorAll('.tab-btn').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-        document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
-        btn.classList.add('active');
-        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-      });
+      btn.addEventListener('click', function() { activateTab(btn.dataset.tab); });
     });
 
-    /* Toggle cards */
+    /* ===== Toggle cards ===== */
     document.querySelectorAll('.toggle-card').forEach(function(card) {
       var field = card.getAttribute('data-field');
       if (todayProgress[field]) { card.classList.add('checked'); card.setAttribute('aria-checked','true'); }
@@ -463,12 +679,12 @@
     function setProgress(field, value, card) {
       var prev = card.classList.contains('checked');
       card.classList.toggle('checked', value); card.setAttribute('aria-checked', String(value));
-      updateDerived();
+      updateDerived(); updateShieldHex();
       var body = new URLSearchParams(); body.append('field', field); body.append('value', value ? '1' : '0');
       fetch('/api/progress', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
         .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
         .then(function(){ todayProgress[field]=value; toast(value?'✓ Logged':'✗ Unchecked'); })
-        .catch(function(){ card.classList.toggle('checked',prev); card.setAttribute('aria-checked',String(prev)); updateDerived(); toast('Failed to save', true); });
+        .catch(function(){ card.classList.toggle('checked',prev); card.setAttribute('aria-checked',String(prev)); updateDerived(); updateShieldHex(); toast('Failed to save', true); });
     }
 
     var blockFields = ['block1_done','block2_done','block3_done','block4_done'];
@@ -483,7 +699,45 @@
     }
     updateDerived();
 
-    /* DSA filter chips */
+    /* ===== Shield Hexagon ===== */
+    var shieldFields = ['ghusl_rule','khalwah_shield','night_protocol','phone_out_of_bedroom','lower_gaze','no_new_riba'];
+    var shieldLabels = ['Ghusl Rule','Khalwah Shield','Night Protocol','Phone Out','Lower Gaze','No New Riba'];
+    var cx = 100, cy = 100, rOuter = 80, rInner = 42;
+    function polar(angle, radius) { return [cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)]; }
+    function segPath(i, total) {
+      var a0 = (i / total) * Math.PI * 2 - Math.PI / 2;
+      var a1 = ((i + 1) / total) * Math.PI * 2 - Math.PI / 2;
+      var p1 = polar(a0, rOuter), p2 = polar(a1, rOuter), p3 = polar(a1, rInner), p4 = polar(a0, rInner);
+      return 'M ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1) +
+             ' A ' + rOuter + ' ' + rOuter + ' 0 0 1 ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1) +
+             ' L ' + p3[0].toFixed(1) + ' ' + p3[1].toFixed(1) +
+             ' A ' + rInner + ' ' + rInner + ' 0 0 0 ' + p4[0].toFixed(1) + ' ' + p4[1].toFixed(1) + ' Z';
+    }
+    function updateShieldHex() {
+      var done = 0;
+      shieldFields.forEach(function(f, i) {
+        var card = document.querySelector('.toggle-card[data-field="'+f+'"]');
+        var isDone = card && card.classList.contains('checked');
+        if (isDone) done++;
+        var seg = document.getElementById('seg-' + i);
+        if (seg) {
+          seg.setAttribute('d', segPath(i, 6));
+          seg.classList.toggle('seg-done', isDone);
+          seg.classList.toggle('seg-missed', !isDone);
+        }
+        var dot = document.getElementById('dot-' + i);
+        var stat = document.getElementById('stat-' + i);
+        if (dot) dot.classList.toggle('dot-done', isDone);
+        if (stat) stat.textContent = isDone ? '✓' : '✗';
+      });
+      var core = document.getElementById('shieldCore');
+      var text = document.getElementById('shieldText');
+      if (core) { core.classList.toggle('core-protected', done === 6); core.classList.toggle('core-partial', done > 0 && done < 6); }
+      if (text) text.textContent = done === 6 ? '🛡️ All shields up' : (done + ' shield' + (done===1?'':'s') + ' up · ' + (6-done) + ' exposed');
+    }
+    updateShieldHex();
+
+    /* ===== DSA filter chips ===== */
     document.querySelectorAll('#dsaFilters .chip').forEach(function(chip) {
       chip.addEventListener('click', function() {
         document.querySelectorAll('#dsaFilters .chip').forEach(function(c){ c.classList.remove('active'); });
@@ -497,7 +751,7 @@
       });
     });
 
-    /* DSA edit modal */
+    /* ===== DSA edit modal ===== */
     window.editDsa = function(id) {
       var p = allDsaData.find(function(d){ return d.id == id; });
       if (!p) return;
@@ -536,7 +790,7 @@
         .catch(function(){ toast('Failed', true); });
     };
 
-    /* Exam session */
+    /* ===== Exam session ===== */
     window.addExamSession = function() {
       var body = new URLSearchParams();
       body.append('topic', document.getElementById('exam-topic').value);
@@ -549,23 +803,24 @@
         .catch(function(){ toast('Failed', true); });
     };
 
-    /* Journal */
+    /* ===== Journal ===== */
     window.addJournal = function() {
       var body = new URLSearchParams();
       body.append('entry_type', document.getElementById('j-type').value);
       body.append('content', document.getElementById('j-content').value);
       fetch('/api/journal', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
         .then(function(r){ return r.json(); })
-        .then(function(){ toast('✓ Journal saved'); document.getElementById('j-content').value=''; })
+        .then(function(){ toast('✓ Journal saved'); document.getElementById('j-content').value=''; setTimeout(function(){ location.reload(); }, 800); })
         .catch(function(){ toast('Failed', true); });
     };
 
-    /* Settings */
+    /* ===== Settings ===== */
     window.saveSettings = function() {
       var blocks = [];
       for (var i = 0; i < 4; i++) blocks.push(document.getElementById('set-block-'+i).value);
       var body = new URLSearchParams();
       body.append('quotes_toggle', document.getElementById('set-quotes').value === 'true');
+      body.append('quote_mode', document.getElementById('set-quote-mode').value);
       body.append('chart_range', document.getElementById('set-chart').value);
       body.append('dua_mode', document.getElementById('set-dua').value);
       body.append('learning_blocks', JSON.stringify(blocks));
@@ -575,25 +830,157 @@
         .catch(function(){ toast('Failed', true); });
     };
 
-    /* Rotating quotes */
-    var quotes = [
+    /* ===== History expand/collapse ===== */
+    window.toggleHistory = function(section) {
+      var panel = document.getElementById('hist-' + section);
+      if (panel) { panel.classList.toggle('open'); return; }
+      panel = document.createElement('div'); panel.id = 'hist-' + section; panel.className = 'history-panel open';
+      var inner = document.createElement('div'); inner.className = 'history-inner';
+      inner.innerHTML = '<div class="empty-state">Loading history…</div>';
+      panel.appendChild(inner);
+      var sectionEl = document.getElementById(section) || document.querySelector('[onclick*="'+section+'"]');
+      if (sectionEl) sectionEl.appendChild(panel);
+      else document.querySelector('.tab-content.active').appendChild(panel);
+
+      var hist = historyData || {};
+      var html = '';
+      if (section === 'salah' && hist.prayers) {
+        html = '<div class="history-grid">';
+        hist.prayers.slice(-7).forEach(function(d) {
+          var count = 0; ['fajr','dhuhr','asr','maghrib','isha'].forEach(function(p){ if(d[p]) count++; });
+          html += '<div class="hist-cell">' +
+            '<div class="hist-date">' + new Date(d.date).toLocaleDateString('en-US',{weekday:'short',day:'numeric'}) + '</div>' +
+            '<div class="hist-val">' + count + '/5 🕌</div>' +
+            '<div class="hist-bar"><div class="hist-bar-fill" style="width:' + (count/5*100) + '%"></div></div>' +
+          '</div>';
+        });
+        html += '</div>';
+      } else if (section === 'blocks' && hist.prayers) {
+        html = '<div class="history-grid">';
+        (hist.blocks || hist.prayers || []).slice(-7).forEach(function(d) {
+          var done = 0; ['block1_done','block2_done','block3_done','block4_done'].forEach(function(f){ if(d[f]) done++; });
+          html += '<div class="hist-cell">' +
+            '<div class="hist-date">' + new Date(d.date).toLocaleDateString('en-US',{weekday:'short',day:'numeric'}) + '</div>' +
+            '<div class="hist-val">' + done + '/4 🧠</div>' +
+          '</div>';
+        });
+        html += '</div>';
+      } else if (section === 'shields' && hist.prayers) {
+        html = '<div class="history-grid">';
+        (hist.shields || hist.prayers || []).slice(-7).forEach(function(d) {
+          var done = 0; shieldFields.forEach(function(f){ if(d[f]) done++; });
+          html += '<div class="hist-cell">' +
+            '<div class="hist-date">' + new Date(d.date).toLocaleDateString('en-US',{weekday:'short',day:'numeric'}) + '</div>' +
+            '<div class="hist-val">' + done + '/6 🛡️</div>' +
+          '</div>';
+        });
+        html += '</div>';
+      } else if (hist.dsa) {
+        html = '<div class="history-grid">';
+        hist.dsa.slice(-7).forEach(function(d) {
+          html += '<div class="hist-cell">' +
+            '<div class="hist-date">' + new Date(d.date).toLocaleDateString('en-US',{weekday:'short',day:'numeric'}) + '</div>' +
+            '<div class="hist-val">' + (d.count||0) + ' 💻</div>' +
+          '</div>';
+        });
+        html += '</div>';
+      } else {
+        html = '<div class="empty-state">No history data available.</div>';
+      }
+      inner.innerHTML = html;
+    };
+
+    /* ===== Quick-edit: today's bar ===== */
+    window.setTodayBar = function(val) {
+      var body = new URLSearchParams();
+      body.append('field', 'bar_hit');
+      body.append('value', val === 'none' ? '' : val);
+      fetch('/api/progress', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+        .then(function(r){ return r.json(); })
+        .then(function(){ toast('✓ Bar updated'); location.reload(); })
+        .catch(function(){ toast('Failed', true); });
+    };
+
+    /* ===== Quick-edit: past day ===== */
+    window.openPastDayEditor = function() { document.getElementById('pastDayModal').style.display = 'flex'; };
+    window.closePastDayModal = function() { document.getElementById('pastDayModal').style.display = 'none'; };
+
+    var pastDayFieldsList = ['survival_layer','tahajjud','fajr','duha','fasting','dhuhr','asr','maghrib','isha',
+      'morning_reading','targets_set','house_task','mma','post_workout_meal','shower',
+      'block1_done','block2_done','block3_done','block4_done',
+      'ghusl_rule','khalwah_shield','night_protocol','phone_out_of_bedroom','lower_gaze','no_new_riba',
+      'haldi_doodh','sleep_on_wudu','evening_reset'];
+    var pastDayLabels = {
+      survival_layer:'Alarm & Out', tahajjud:'Tahajjud', fajr:'Fajr', duha:'Duha', fasting:'Fasting',
+      dhuhr:'Dhuhr', asr:'Asr', maghrib:'Maghrib', isha:'Isha',
+      morning_reading:'Morning Reading', targets_set:'Targets Set', house_task:'House Task',
+      mma:'MMA', post_workout_meal:'Post-Workout Meal', shower:'Shower',
+      block1_done:'Block 1', block2_done:'Block 2', block3_done:'Block 3', block4_done:'Block 4',
+      ghusl_rule:'Ghusl Rule', khalwah_shield:'Khalwah Shield', night_protocol:'Night Protocol',
+      phone_out_of_bedroom:'Phone Out', lower_gaze:'Lower Gaze', no_new_riba:'No New Riba',
+      haldi_doodh:'Haldi Doodh', sleep_on_wudu:'Sleep on Wudu', evening_reset:'Evening Reset'
+    };
+    var pastDayData = {};
+    window.loadPastDay = function() {
+      var date = document.getElementById('past-date').value;
+      if (!date) { toast('Pick a date', true); return; }
+      fetch('/api/progress/day?date=' + encodeURIComponent(date))
+        .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+        .then(function(data) {
+          pastDayData = data.progress || data || {};
+          var list = document.getElementById('pastToggleList'); list.innerHTML = '';
+          pastDayFieldsList.forEach(function(f) {
+            var wrap = document.createElement('label'); wrap.className = 'past-toggle';
+            var cb = document.createElement('input'); cb.type = 'checkbox'; cb.dataset.field = f;
+            cb.checked = !!pastDayData[f];
+            var span = document.createElement('span'); span.textContent = pastDayLabels[f] || f;
+            wrap.appendChild(cb); wrap.appendChild(span); list.appendChild(wrap);
+          });
+          document.getElementById('past-bar').value = pastDayData.bar_hit || 'none';
+          document.getElementById('pastDayFields').style.display = 'block';
+        })
+        .catch(function(){ toast('Could not load day', true); });
+    };
+    window.savePastDay = function() {
+      var date = document.getElementById('past-date').value;
+      if (!date) { toast('Pick a date', true); return; }
+      var body = new URLSearchParams();
+      body.append('date', date);
+      document.querySelectorAll('#pastToggleList input[type="checkbox"]').forEach(function(cb) {
+        body.append(cb.dataset.field, cb.checked ? '1' : '0');
+      });
+      body.append('bar_hit', document.getElementById('past-bar').value);
+      fetch('/api/progress/' + encodeURIComponent(date), { method:'PUT', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+        .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+        .then(function(){ toast('✓ Day updated'); closePastDayModal(); })
+        .catch(function(){ toast('Failed to save', true); });
+    };
+
+    /* ===== Rotating quotes ===== */
+    var quotesIslamic = [
       { t: "Verily, with hardship comes ease.", a: "Qur'an 94:6" },
       { t: "The strong believer is better and more beloved to Allah than the weak believer, though in both is good.", a: "Prophet Muhammad ﷺ" },
       { t: "Take advantage of five before five: your youth before old age, your health before sickness, your wealth before poverty, your free time before busyness, your life before death.", a: "Prophet Muhammad ﷺ" },
       { t: "Allah does not burden a soul beyond that it can bear.", a: "Qur'an 2:286" },
       { t: "Indeed, Allah will not change the condition of a people until they change what is in themselves.", a: "Qur'an 13:11" },
-      { t: "The secret of getting ahead is getting started.", a: "Mark Twain" },
-      { t: "You are what you repeatedly do. Excellence is a habit, not an act.", a: "Aristotle" },
       { t: "And whoever puts their trust in Allah — He is sufficient for them.", a: "Qur'an 65:3" },
       { t: "Do not despise any good deed, even meeting your brother with a cheerful face.", a: "Prophet Muhammad ﷺ" },
-      { t: "Fall seven times, stand up eight.", a: "Japanese Proverb" },
-      { t: "Discipline is the bridge between goals and accomplishment.", a: "Jim Rohn" },
       { t: "The one who is not grateful to people is not grateful to Allah.", a: "Prophet Muhammad ﷺ" },
-      { t: "Your life is a ship; discipline is the sail, and intention is the compass.", a: "Unknown" },
-      { t: "When you arise in the morning, think of what a precious privilege it is to be alive.", a: "Marcus Aurelius" },
       { t: "The best of people are those most beneficial to people.", a: "Prophet Muhammad ﷺ" }
     ];
-    var q = quotes[new Date().getDate() % quotes.length];
+    var quotesMotivational = [
+      { t: "The secret of getting ahead is getting started.", a: "Mark Twain" },
+      { t: "You are what you repeatedly do. Excellence is a habit, not an act.", a: "Aristotle" },
+      { t: "Fall seven times, stand up eight.", a: "Japanese Proverb" },
+      { t: "Discipline is the bridge between goals and accomplishment.", a: "Jim Rohn" },
+      { t: "When you arise in the morning, think of what a precious privilege it is to be alive.", a: "Marcus Aurelius" },
+      { t: "Your life is a ship; discipline is the sail, and intention is the compass.", a: "Unknown" }
+    ];
+    var mode = settingsData.quote_mode || 'mixed';
+    var pool = mode === 'islamic' ? quotesIslamic
+             : mode === 'motivational' ? quotesMotivational
+             : quotesIslamic.concat(quotesMotivational);
+    var q = pool[new Date().getDate() % pool.length];
     var qt = document.getElementById('quote-text');
     var qa = document.getElementById('quote-author');
     if (qt) qt.textContent = '"' + q.t + '"';
