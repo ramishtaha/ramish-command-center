@@ -3,1183 +3,601 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Command Center · Day <%= dayNumber %> of 84</title>
+  <title>Command Center · Day <%= activeDayCount %> of 84</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
 
-  <!-- ============================== 1. HERO SECTION ============================== -->
-  <header class="app-header hero-header">
+  <!-- ============================== HERO ============================== -->
+  <header class="app-header">
     <div class="container">
       <div class="row row-wrap" style="justify-content:space-between;">
         <div>
           <div class="greeting">Bismillah, <span class="accent"><%= user.username %></span> 🌙</div>
-          <div class="date-line">
-            <%= today.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) %>
-          </div>
+          <div class="date-line"><%= today.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) %></div>
         </div>
-        <div class="row" style="gap:10px;">
-          <% if (todayProgress.mode_used) { %>
-            <span class="mode-badge"><%= todayProgress.mode_used === 'office' ? '🏢 Office' : '🏠 Laptop' %></span>
-          <% } %>
-          <a class="logout-link" href="/logout">Sign out</a>
-        </div>
+        <a class="logout-link" href="/logout">Sign out</a>
       </div>
-
-      <!-- Day progress + big streak + bar hit + DSA -->
-      <div class="hero-row mt">
-        <!-- Day of 84 -->
-        <div class="hero-block hero-block--wide">
-          <div class="progress-label">
-            <span>Day <%= activeDayCount %> of 84</span>
-            <span class="pct"><%= Math.round((activeDayCount / 84) * 100) %>%</span>
-          </div>
-          <div class="progress-wrap">
-            <div class="progress-bar" style="width:<%= Math.min(100, (activeDayCount / 84) * 100) %>%"></div>
-          </div>
+      <div class="mt">
+        <div class="progress-label">
+          <span>12-Week Journey · Day <%= activeDayCount %> of 84</span>
+          <span class="pct"><%= Math.round((activeDayCount / 84) * 100) %>%</span>
         </div>
-
-        <!-- Big streak badge -->
-        <div class="hero-block">
-          <div class="hero-stat">
-            <span class="hero-stat-num"><%= salahStreak %></span>
-            <span class="hero-stat-label">🔥 Day Streak</span>
-          </div>
-        </div>
-
-        <!-- Bar hit today -->
-        <div class="hero-block">
-          <div class="hero-stat">
-            <span class="hero-stat-num bar-emoji">
-              <% if (todayProgress.bar_hit === 'high') { %>🟡<% } else if (todayProgress.bar_hit === 'low') { %>🟢<% } else { %>—<% } %>
-            </span>
-            <span class="hero-stat-label">Bar Today</span>
-          </div>
-        </div>
-
-        <!-- DSA total + unaided % -->
-        <div class="hero-block">
-          <div class="hero-stat">
-            <span class="hero-stat-num"><%= dsaCount %></span>
-            <span class="hero-stat-label">💻 DSA Total</span>
-          </div>
-          <div class="unaided-mini-badge">
-            Unaided <strong><%= (dsaUnaided && dsaUnaided.percent != null) ? dsaUnaided.percent : 0 %>%</strong>
-          </div>
-        </div>
+        <div class="progress-wrap"><div class="progress-bar" style="width:<%= Math.min(100, (activeDayCount / 84) * 100) %>%"></div></div>
       </div>
-
-      <!-- Streak badges -->
-      <div class="streak-badges header-streaks">
-        <span class="streak-badge salah">
-          <span class="fire">🔥</span> Salah · <%= salahStreak %>
-        </span>
-        <span class="streak-badge dsa">
-          <span class="fire">🔥</span> DSA · <%= dsaStreak %>
-        </span>
-        <span class="streak-badge survival">
-          <span class="fire">🔥</span> Survival · <%= survivalStreak %>
-        </span>
+      <div class="streak-badges header-streaks mt">
+        <span class="streak-badge salah"><span class="fire">🔥</span> Salah · <%= salahStreak %></span>
+        <span class="streak-badge dsa"><span class="fire">🔥</span> DSA · <%= dsaStreak %></span>
+        <span class="streak-badge survival"><span class="fire">🔥</span> Survival · <%= survivalStreak %></span>
+        <span class="streak-badge" style="border-color:var(--gold-bd);color:var(--gold)">📊 Focus · <%= focusScore %>%</span>
+        <span class="streak-badge" style="border-color:var(--emerald-bd);color:var(--emerald)">🎯 <%= milestoneNext.icon %> <%= milestoneNext.pct %>%</span>
       </div>
-
-      <!-- Week stats -->
       <div class="week-stats mt">
-        <div class="week-stat">
-          <div class="ws-num"><%= weekStats.salah_complete_days %></div>
-          <div class="ws-label">Salah Days</div>
-        </div>
-        <div class="week-stat">
-          <div class="ws-num"><%= weekStats.dsa_days %></div>
-          <div class="ws-label">DSA Days</div>
-        </div>
-        <div class="week-stat">
-          <div class="ws-num"><%= weekStats.mma_days %></div>
-          <div class="ws-label">MMA Days</div>
-        </div>
-        <div class="week-stat">
-          <div class="ws-num"><%= weekStats.survival_days %></div>
-          <div class="ws-label">Survival Days</div>
-        </div>
-        <div class="week-stat">
-          <div class="ws-num"><%= weekStats.total_days %></div>
-          <div class="ws-label">Total /7</div>
-        </div>
+        <div class="week-stat"><div class="ws-num"><%= weekStats.salah_complete_days || 0 %></div><div class="ws-label">Salah</div></div>
+        <div class="week-stat"><div class="ws-num"><%= weekStats.dsa_days || 0 %></div><div class="ws-label">DSA</div></div>
+        <div class="week-stat"><div class="ws-num"><%= weekStats.mma_days || 0 %></div><div class="ws-label">MMA</div></div>
+        <div class="week-stat"><div class="ws-num"><%= weekStats.active_days || 0 %></div><div class="ws-label">Active</div></div>
+        <div class="week-stat"><div class="ws-num"><%= weekStats.total_days || 0 %></div><div class="ws-label">Total/7</div></div>
       </div>
-
-      <% if (weekStats.low_bar_days != null || weekStats.high_bar_days != null) { %>
-      <div class="bar-stats mt">
-        <% if (weekStats.low_bar_days != null) { %>
-        <span class="bar-pill bar-pill--low">🟢 Low Bar: <%= weekStats.low_bar_days %>/7</span>
-        <% } %>
-        <% if (weekStats.high_bar_days != null) { %>
-        <span class="bar-pill bar-pill--high">🟡 High Bar: <%= weekStats.high_bar_days %>/7</span>
-        <% } %>
-      </div>
-      <% } %>
     </div>
   </header>
 
+  <!-- ============================== TAB NAV ============================== -->
+  <nav class="tab-nav" id="tabNav">
+    <div class="container">
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+        <button class="tab-btn" data-tab="progress">📈 Progress</button>
+        <button class="tab-btn" data-tab="journal">📝 Journal</button>
+        <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+      </div>
+    </div>
+  </nav>
+
   <main class="container">
 
-    <!-- ============================== 2. TRAJECTORY & PROJECTION ============================== -->
-    <% if (projection) { %>
-    <section class="section" id="trajectory">
-      <div class="section-title">
-        <span class="icon">📈</span> Trajectory &amp; Projection
-        <span class="hint">Where you're heading</span>
-      </div>
-      <div class="grid cols-2">
-        <!-- Pace -->
-        <div class="card proj-card">
-          <div class="proj-label">At your current pace</div>
-          <div class="proj-value"><%= projection.pace %> <span class="proj-unit">problems/day</span></div>
-          <div class="proj-sub">Days remaining: <strong><%= projection.daysRemaining %></strong></div>
-        </div>
+    <!-- ============================== TAB: DASHBOARD ============================== -->
+    <div class="tab-content active" id="tab-dashboard">
 
-        <!-- Projected completion -->
-        <div class="card proj-card">
-          <div class="proj-label">Projected completion</div>
-          <div class="proj-value">Day <%= projection.projectedFinishDays %> of 84</div>
-          <div class="progress-wrap proj-progress">
-            <div class="progress-bar" style="width:<%= Math.min(100, (projection.projectedFinishDays / 84) * 100) %>%"></div>
+      <!-- TRAJECTORY -->
+      <section class="section">
+        <div class="section-title"><span class="icon">📈</span> Trajectory & Projection</div>
+        <div class="grid cols-3">
+          <div class="card proj-card">
+            <div class="proj-label">Current Pace</div>
+            <div class="proj-value"><%= projection.pace %> <span class="proj-unit">DSA/day</span></div>
           </div>
-        </div>
-
-        <!-- Rest day budget -->
-        <div class="card proj-card <%= projection.restBudget < 0 ? 'proj-card--danger' : 'proj-card--ok' %>">
-          <div class="proj-label">Rest day budget</div>
-          <div class="proj-value">
-            <%= projection.restBudget >= 0 ? projection.restBudget + ' days available' : Math.abs(projection.restBudget) + ' days over' %>
+          <div class="card proj-card">
+            <div class="proj-label">Projected Finish</div>
+            <div class="proj-value">Day <%= projection.projectedFinishDays %></div>
+            <div class="progress-wrap mt" style="height:8px;">
+              <div class="progress-bar" style="width:<%= Math.min(100, (projection.projectedFinishDays / 84) * 100) %>%"></div>
+            </div>
           </div>
-          <div class="proj-sub">
-            <%= projection.restBudget >= 0 ? '✅ On track — you have buffer' : '⚠️ You\'re behind — no rest left' %>
+          <div class="card proj-card <%= projection.restBudget < 0 ? 'proj-danger' : 'proj-ok' %>">
+            <div class="proj-label">Rest Day Budget</div>
+            <div class="proj-value"><%= projection.restBudget > 0 ? projection.restBudget + ' days' : '⚠️ Over!' %></div>
           </div>
         </div>
-
-        <!-- Need to speed up? -->
-        <div class="card proj-card <%= projection.needToSpeedUp ? 'proj-card--danger' : 'proj-card--ok' %>">
-          <div class="proj-label">Need to speed up?</div>
-          <div class="proj-value proj-value--big">
-            <%= projection.needToSpeedUp ? '⚠️ Yes' : '✅ No' %>
-          </div>
-          <div class="proj-sub">
-            <%= projection.needToSpeedUp ? 'Increase your daily pace to stay on track' : 'You\'re on pace — keep going!' %>
-          </div>
-        </div>
-      </div>
-    </section>
-    <% } %>
-
-    <!-- ============================== 3. TODAY'S PLAN ============================== -->
-    <% if (todayPlan) { %>
-    <section class="section" id="today-plan">
-      <div class="section-title">
-        <span class="icon">🎯</span> Today's Plan
-        <span class="hint">What to tackle today</span>
-      </div>
-
-      <div class="plan-grid">
-        <!-- DSA -->
-        <% if (todayPlan.dsa && todayPlan.dsa.length) { %>
-        <div class="plan-card">
-          <div class="plan-card-head">
-            <span class="plan-icon">💻</span>
-            <span class="plan-title">DSA</span>
-            <span class="plan-bar">🟢 Low: log 1 · 🟡 High: log 2+</span>
-          </div>
-          <div class="plan-items">
-            <% todayPlan.dsa.forEach(function(prob, i){ %>
-              <div class="plan-item">
-                <span class="plan-check">☐</span>
-                <span class="plan-text"><%= prob %></span>
-              </div>
-            <% }) %>
-          </div>
-        </div>
+        <% if (projection.needToSpeedUp) { %>
+          <div class="card mt proj-danger-card">⚠️ <strong>Need to speed up.</strong> At current pace you'll finish on Day <%= projection.projectedFinishDays %>. Increase DSA/day to finish on time.</div>
+        <% } else { %>
+          <div class="card mt proj-ok-card">✅ On track. <%= projection.restBudget %> rest days available. You can afford a break.</div>
         <% } %>
+      </section>
 
-        <!-- Spring Boot -->
-        <% if (todayPlan.spring_boot) { %>
-        <div class="plan-card">
-          <div class="plan-card-head">
-            <span class="plan-icon">🌱</span>
-            <span class="plan-title">Spring Boot</span>
-            <span class="plan-bar">🟢 Low: 1 commit · 🟡 High: feature done</span>
-          </div>
-          <div class="plan-items">
-            <div class="plan-item">
-              <span class="plan-check">☐</span>
-              <span class="plan-text"><%= todayPlan.spring_boot %></span>
+      <!-- MILESTONE -->
+      <section class="section">
+        <div class="section-title"><span class="icon"><%= milestoneNext.icon %></span> Next Milestone</div>
+        <div class="card milestone-card">
+          <div class="row" style="align-items:center;gap:16px;">
+            <div class="milestone-ring" style="--pct:<%= milestoneNext.pct %>">
+              <span class="mr-num"><%= milestoneNext.pct %>%</span>
+            </div>
+            <div>
+              <div class="milestone-name"><%= milestoneNext.icon %> <%= milestoneNext.name %></div>
+              <div class="milestone-desc"><%= milestoneNext.label %> · <%= milestoneNext.current %>/<%= milestoneNext.threshold %></div>
             </div>
           </div>
         </div>
-        <% } %>
+      </section>
 
-        <!-- System Design -->
-        <% if (todayPlan.system_design) { %>
-        <div class="plan-card">
-          <div class="plan-card-head">
-            <span class="plan-icon">🏗️</span>
-            <span class="plan-title">System Design</span>
-            <span class="plan-bar">🟢 Low: read · 🟡 High: diagram</span>
+      <!-- TODAY'S PLAN -->
+      <section class="section">
+        <div class="section-title"><span class="icon">📋</span> Today's Plan</div>
+        <div class="card">
+          <div class="plan-bars">
+            <div class="plan-bar">🟢 <strong>Low:</strong> 1 DSA + 1 concept + 1 career action</div>
+            <div class="plan-bar">🟡 <strong>High:</strong> 4 DSA + full Spring Boot + full career</div>
           </div>
-          <div class="plan-items">
-            <div class="plan-item">
-              <span class="plan-check">☐</span>
-              <span class="plan-text"><%= todayPlan.system_design %></span>
+          <% if (todayPlan && todayPlan.dsa && todayPlan.dsa.length) { %>
+            <div class="mt plan-list"><strong>DSA:</strong>
+              <% todayPlan.dsa.forEach(function(p){ %><span class="plan-chip"><%= p %></span><% }); %>
             </div>
-          </div>
+          <% } %>
+          <% if (todayPlan && todayPlan.spring_boot) { %><div class="mt plan-list"><strong>Spring Boot:</strong> <%= todayPlan.spring_boot %></div><% } %>
+          <% if (todayPlan && todayPlan.system_design) { %><div class="mt plan-list"><strong>System Design:</strong> <%= todayPlan.system_design %></div><% } %>
+          <% if (todayPlan && todayPlan.career) { %><div class="mt plan-list"><strong>Career:</strong> <%= todayPlan.career %></div><% } %>
+          <% if (todayPlan && todayPlan.devops) { %><div class="mt plan-list"><strong>DevOps:</strong> <%= todayPlan.devops %></div><% } %>
         </div>
-        <% } %>
+      </section>
 
-        <!-- Career -->
-        <% if (todayPlan.career) { %>
-        <div class="plan-card">
-          <div class="plan-card-head">
-            <span class="plan-icon">🚀</span>
-            <span class="plan-title">Career</span>
-            <span class="plan-bar">🟢 Low: 1 action · 🟡 High: apply</span>
-          </div>
-          <div class="plan-items">
-            <div class="plan-item">
-              <span class="plan-check">☐</span>
-              <span class="plan-text"><%= todayPlan.career %></span>
-            </div>
-          </div>
-        </div>
-        <% } %>
-
-        <!-- DevOps -->
-        <% if (todayPlan.devops) { %>
-        <div class="plan-card">
-          <div class="plan-card-head">
-            <span class="plan-icon">⚙️</span>
-            <span class="plan-title">DevOps</span>
-            <span class="plan-bar">🟢 Low: learn · 🟡 High: deploy</span>
-          </div>
-          <div class="plan-items">
-            <div class="plan-item">
-              <span class="plan-check">☐</span>
-              <span class="plan-text"><%= todayPlan.devops %></span>
-            </div>
-          </div>
-        </div>
-        <% } %>
-      </div>
-    </section>
-    <% } %>
-
-    <!-- ============================== 4. OVERDUE & PENDING ============================== -->
-    <% if ((overdueRevisions && overdueRevisions.length) || (unaidedQueue && unaidedQueue.length)) { %>
-    <section class="section overdue-section" id="overdue">
-      <div class="section-title">
-        <span class="icon">⚠️</span> Overdue &amp; Pending
-        <span class="hint">Handle these first</span>
-      </div>
-
+      <!-- OVERDUE -->
       <% if (overdueRevisions && overdueRevisions.length) { %>
-      <div class="card overdue-card">
-        <div class="card-title overdue-title">📅 Overdue Revisions</div>
-        <div class="overdue-list">
-          <% overdueRevisions.forEach(function(rev){ %>
-            <div class="overdue-item">
-              <div class="overdue-problem"><%= rev.problem %></div>
-              <div class="overdue-meta">
-                Solved: <%= new Date(rev.solved_date).toLocaleDateString('en-US', { month:'short', day:'numeric' }) %>
-                · <span class="overdue-days"><%= rev.days_overdue %>d overdue</span>
-              </div>
-            </div>
-          <% }) %>
+      <section class="section">
+        <div class="section-title"><span class="icon">⚠️</span> Overdue Revisions</div>
+        <div class="card overdue-card">
+          <% overdueRevisions.forEach(function(r){ %>
+            <div class="overdue-item">🔴 <%= r.problem %> — <span class="text-mute"><%= r.days_overdue %>d overdue</span></div>
+          <% }); %>
         </div>
-      </div>
+      </section>
       <% } %>
 
-      <% if (unaidedQueue && unaidedQueue.length) { %>
-      <div class="card overdue-card mt">
-        <div class="card-title overdue-title">🔁 Unaided Re-Solve Queue</div>
-        <div class="overdue-list">
-          <% unaidedQueue.forEach(function(item){ %>
-            <div class="overdue-item">
-              <div class="overdue-problem"><%= item.problem %></div>
-              <div class="overdue-meta">
-                Re-solve without help
-                <% if (item.help_level) { %>
-                  · <span class="hl-badge hl-badge--<%= item.help_level %>"><%= item.help_level %></span>
-                <% } %>
-              </div>
+      <!-- SURVIVAL LAYER -->
+      <section class="section" id="survival">
+        <div class="section-title"><span class="icon">🌅</span> Survival Layer</div>
+        <div class="grid cols-3">
+          <% ['survival_layer:⏰:Alarm & Out','tahajjud:🌌:Tahajjud','fajr:🕌:Fajr','duha:☀️:Adhkar & Duha','fasting:🌑:Fasting'].forEach(function(item){ var p=item.split(':'); %>
+            <div class="toggle-card" data-field="<%= p[0] %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[p[0]] %>">
+              <div class="tc-head"><span class="tc-icon"><%= p[1] %></span><span class="tc-label"><%= p[2] %></span><span class="tc-check"></span></div>
             </div>
-          <% }) %>
+          <% }); %>
         </div>
-      </div>
-      <% } %>
-    </section>
-    <% } %>
+      </section>
 
-    <!-- ============================== 5. SURVIVAL LAYER ============================== -->
-    <section class="section" id="survival">
-      <div class="section-title">
-        <span class="icon">🌅</span> Survival Layer
-        <span class="hint">Win the first hour, win the day</span>
-      </div>
-      <div class="grid cols-3">
-        <div class="toggle-card" data-field="survival_layer" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.survival_layer %>">
-          <div class="tc-head">
-            <span class="tc-icon">⏰</span>
-            <span class="tc-label">Alarm &amp; Out of Bed</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Wake on first alarm</div>
+      <!-- SALAH -->
+      <section class="section" id="salah">
+        <div class="section-title"><span class="icon">🕌</span> Salah Tracker <span class="hint">🔥 <%= salahStreak %></span></div>
+        <div class="celebrate" id="salah-celebrate"><span class="emoji">🎉</span><span>All 5 prayers complete! MashaAllah!</span></div>
+        <div class="grid cols-4">
+          <% ['fajr:🌅:Fajr','dhuhr:🌞:Dhuhr','asr:🌇:Asr','maghrib:🌆:Maghrib','isha:🌙:Isha'].forEach(function(item){ var p=item.split(':'); %>
+            <div class="toggle-card" data-field="<%= p[0] %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[p[0]] %>">
+              <div class="tc-head"><span class="tc-icon"><%= p[1] %></span><span class="tc-label"><%= p[2] %></span><span class="tc-check"></span></div>
+            </div>
+          <% }); %>
+          <% if (today.getDay() === 5) { %>
+            <div class="toggle-card" data-field="jumuah" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.jumuah %>">
+              <div class="tc-head"><span class="tc-icon">🕋</span><span class="tc-label">Jumu'ah</span><span class="tc-check"></span></div>
+            </div>
+          <% } %>
         </div>
-        <div class="toggle-card" data-field="survival_layer" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.survival_layer %>">
-          <div class="tc-head">
-            <span class="tc-icon">🪥</span>
-            <span class="tc-label">Brush Teeth</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Mouth fresh first thing</div>
-        </div>
-        <div class="toggle-card" data-field="survival_layer" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.survival_layer %>">
-          <div class="tc-head">
-            <span class="tc-icon">💧</span>
-            <span class="tc-label">Wudu</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Begin in purity</div>
-        </div>
-        <div class="toggle-card" data-field="tahajjud" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.tahajjud %>">
-          <div class="tc-head">
-            <span class="tc-icon">🌌</span>
-            <span class="tc-label">Tahajjud</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Night prayer</div>
-        </div>
-        <div class="toggle-card" data-field="fajr" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.fajr %>">
-          <div class="tc-head">
-            <span class="tc-icon">🕌</span>
-            <span class="tc-label">Fajr on Time</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">First salah of the day</div>
-        </div>
-        <div class="toggle-card" data-field="duha" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.duha %>">
-          <div class="tc-head">
-            <span class="tc-icon">☀️</span>
-            <span class="tc-label">Adhkar &amp; Duha</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Morning remembrance</div>
-        </div>
-        <div class="toggle-card" data-field="fasting" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.fasting %>">
-          <div class="tc-head">
-            <span class="tc-icon">🌑</span>
-            <span class="tc-label">Fasting (Sunnah)</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Mon / Thu sunnah fast</div>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ============================== 6. SALAH TRACKER ============================== -->
-    <section class="section" id="salah">
-      <div class="section-title">
-        <span class="icon">🕌</span> Salah Tracker
-        <span class="hint">🔥 Salah streak · <%= salahStreak %> day<%= salahStreak === 1 ? '' : 's' %></span>
-      </div>
+      <!-- PRIME + TRAINING -->
+      <section class="section">
+        <div class="section-title"><span class="icon">📖</span> Prime & Training</div>
+        <div class="grid cols-3">
+          <% ['morning_reading:📚:Morning Reading','targets_set:🎯:Targets Set','house_task:🏠:House Task','mma:🥊:MMA Session','post_workout_meal:🍗:Post-Workout Meal','shower:🚿:Shower'].forEach(function(item){ var p=item.split(':'); %>
+            <div class="toggle-card" data-field="<%= p[0] %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[p[0]] %>">
+              <div class="tc-head"><span class="tc-icon"><%= p[1] %></span><span class="tc-label"><%= p[2] %></span><span class="tc-check"></span></div>
+            </div>
+          <% }); %>
+        </div>
+      </section>
 
-      <div class="celebrate" id="salah-celebrate">
-        <span class="emoji">🎉</span>
-        <span>All 5 prayers complete! MashaAllah — keep the streak alive!</span>
-      </div>
+      <!-- LEARNING BLOCKS -->
+      <section class="section" id="blocks">
+        <div class="section-title"><span class="icon">🧠</span> Learning Blocks</div>
+        <div class="grid cols-4">
+          <% ['block1_done:🟢:Block 1:DSA','block2_done:🔵:Block 2:Spring Boot','block3_done:🟣:Block 3:Sys Design','block4_done:🟡:Block 4:Revision'].forEach(function(item){ var p=item.split(':'); %>
+            <div class="toggle-card" data-field="<%= p[0] %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[p[0]] %>">
+              <div class="tc-head"><span class="tc-icon"><%= p[1] %></span><span class="tc-label"><%= p[2] %></span><span class="tc-check"></span></div>
+              <div class="tc-sub"><%= p[3] %></div>
+            </div>
+          <% }); %>
+        </div>
+      </section>
 
-      <div class="grid cols-4">
-        <div class="toggle-card" data-field="fajr" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.fajr %>">
-          <div class="tc-head">
-            <span class="tc-icon">🌅</span>
-            <span class="tc-label">Fajr</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Dawn</div>
+      <!-- SHIELDS -->
+      <section class="section" id="shields">
+        <div class="section-title"><span class="icon">🛡️</span> Shields</div>
+        <div class="grid cols-3">
+          <% ['ghusl_rule:🛡️:Ghusl Rule','khalwah_shield:🛡️:Khalwah Shield','night_protocol:🛡️:Night Protocol','phone_out_of_bedroom:🛡️:Phone Out','lower_gaze:🛡️:Lower Gaze','no_new_riba:🛡️:No New Riba'].forEach(function(item){ var p=item.split(':'); %>
+            <div class="toggle-card" data-field="<%= p[0] %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[p[0]] %>">
+              <div class="tc-head"><span class="tc-icon"><%= p[1] %></span><span class="tc-label"><%= p[2] %></span><span class="tc-check"></span></div>
+            </div>
+          <% }); %>
         </div>
-        <div class="toggle-card" data-field="dhuhr" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.dhuhr %>">
-          <div class="tc-head">
-            <span class="tc-icon">🌞</span>
-            <span class="tc-label">Dhuhr</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Noon</div>
+      </section>
+
+      <!-- EVENING RESET -->
+      <section class="section" id="evening">
+        <div class="section-title"><span class="icon">🌙</span> Evening Reset</div>
+        <div class="grid cols-3">
+          <% ['haldi_doodh:🥛:Haldi Doodh','sleep_on_wudu:💧:Sleep on Wudu','evening_reset:✅:Evening Reset Done'].forEach(function(item){ var p=item.split(':'); %>
+            <div class="toggle-card" data-field="<%= p[0] %>" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress[p[0]] %>">
+              <div class="tc-head"><span class="tc-icon"><%= p[1] %></span><span class="tc-label"><%= p[2] %></span><span class="tc-check"></span></div>
+            </div>
+          <% }); %>
         </div>
-        <div class="toggle-card" data-field="asr" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.asr %>">
-          <div class="tc-head">
-            <span class="tc-icon">🌇</span>
-            <span class="tc-label">Asr</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Afternoon</div>
+      </section>
+
+      <!-- EXAM TRACKER -->
+      <section class="section" id="exam">
+        <div class="section-title"><span class="icon">📜</span> Claude Dev Cert <span class="hint"><%= examStats.daysUntilCert %> days to Oct 1</span></div>
+        <div class="grid cols-3">
+          <div class="card"><div class="proj-label">Total Study</div><div class="proj-value"><%= Math.round(examStats.totalMinutes / 60 * 10) / 10 %>h</div></div>
+          <div class="card"><div class="proj-label">Topics</div><div class="proj-value"><%= examStats.topics %></div></div>
+          <div class="card"><div class="proj-label">Readiness</div><div class="proj-value"><%= examStats.topScore %>/10</div></div>
         </div>
-        <div class="toggle-card" data-field="maghrib" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.maghrib %>">
-          <div class="tc-head">
-            <span class="tc-icon">🌆</span>
-            <span class="tc-label">Maghrib</span>
-            <span class="tc-check"></span>
+        <div class="card mt">
+          <div class="card-title">Quick Log Study Session</div>
+          <div class="grid cols-2">
+            <input class="input" type="text" id="exam-topic" placeholder="Topic" />
+            <div class="grid cols-2" style="grid-template-columns:1fr 1fr;">
+              <input class="input" type="number" id="exam-mins" placeholder="Minutes" min="0" />
+              <input class="input" type="number" id="exam-score" placeholder="Ready 1-10" min="1" max="10" />
+            </div>
           </div>
-          <div class="tc-sub">Sunset</div>
+          <textarea class="input mt" id="exam-notes" placeholder="Notes (optional)" style="min-height:60px;"></textarea>
+          <button class="btn btn-primary mt" onclick="addExamSession()">+ Log Session</button>
         </div>
-        <div class="toggle-card" data-field="isha" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.isha %>">
-          <div class="tc-head">
-            <span class="tc-icon">🌙</span>
-            <span class="tc-label">Isha</span>
-            <span class="tc-check"></span>
+        <% if (examData && examData.length) { %>
+          <div class="card mt">
+            <div class="card-title">Recent Sessions</div>
+            <% examData.forEach(function(e){ %>
+              <div class="problem-item">
+                <div class="p-name"><%= e.topic %> — <%= e.minutes_studied %> min</div>
+                <div class="p-meta"><span><%= new Date(e.date).toLocaleDateString() %></span><span>Ready: <%= e.ready_score %>/10</span></div>
+                <% if (e.notes) { %><div class="p-notes"><%= e.notes %></div><% } %>
+              </div>
+            <% }); %>
           </div>
-          <div class="tc-sub">Night</div>
-        </div>
-        <% if (today.getDay() === 5) { %>
-        <div class="toggle-card" data-field="jumuah" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.jumuah %>">
-          <div class="tc-head">
-            <span class="tc-icon">🕋</span>
-            <span class="tc-label">Jumu'ah</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Friday congregation</div>
-        </div>
         <% } %>
-      </div>
-    </section>
+      </section>
 
-    <!-- ============================== 7. PRIME LAYER ============================== -->
-    <section class="section" id="prime">
-      <div class="section-title">
-        <span class="icon">📖</span> Prime Layer
-        <span class="hint">Sharpen the mind &amp; the home</span>
-      </div>
-      <div class="grid cols-3">
-        <div class="toggle-card" data-field="morning_reading" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.morning_reading %>">
-          <div class="tc-head">
-            <span class="tc-icon">📚</span>
-            <span class="tc-label">Morning Reading</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Feed the mind early</div>
-        </div>
-        <div class="toggle-card" data-field="targets_set" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.targets_set %>">
-          <div class="tc-head">
-            <span class="tc-icon">🎯</span>
-            <span class="tc-label">Targets Set</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Know today's wins</div>
-        </div>
-        <div class="toggle-card" data-field="house_task" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.house_task %>">
-          <div class="tc-head">
-            <span class="tc-icon">🏠</span>
-            <span class="tc-label">House Task</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Serve the home</div>
-        </div>
-      </div>
-    </section>
+    </div><!-- /tab-dashboard -->
 
-    <!-- ============================== 8. TRAINING ============================== -->
-    <section class="section" id="training">
-      <div class="section-title">
-        <span class="icon">🥊</span> Training
-        <span class="hint">Body &amp; discipline</span>
-      </div>
-      <div class="grid cols-3">
-        <div class="toggle-card" data-field="mma" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.mma %>">
-          <div class="tc-head">
-            <span class="tc-icon">🥊</span>
-            <span class="tc-label">MMA Session</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Train hard, stay sharp</div>
-        </div>
-        <div class="toggle-card" data-field="post_workout_meal" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.post_workout_meal %>">
-          <div class="tc-head">
-            <span class="tc-icon">🍗</span>
-            <span class="tc-label">Post-Workout Meal</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Refuel properly</div>
-        </div>
-        <div class="toggle-card" data-field="shower" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.shower %>">
-          <div class="tc-head">
-            <span class="tc-icon">🚿</span>
-            <span class="tc-label">Shower</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Clean &amp; fresh</div>
-        </div>
-      </div>
-    </section>
+    <!-- ============================== TAB: PROGRESS ============================== -->
+    <div class="tab-content" id="tab-progress">
 
-    <!-- ============================== 9. LEARNING BLOCKS ============================== -->
-    <section class="section" id="blocks">
-      <div class="section-title">
-        <span class="icon">🧠</span> Learning Blocks
-        <span class="hint">6 hours total · TCS → GCC</span>
-      </div>
-      <div class="grid cols-4">
-        <div class="toggle-card" data-field="block1_done" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.block1_done %>">
-          <div class="tc-head">
-            <span class="tc-icon">🟢</span>
-            <span class="tc-label">Block 1 · DSA</span>
-            <span class="tc-check"></span>
+      <section class="section">
+        <div class="section-title"><span class="icon">📊</span> DSA Unaided Tracking</div>
+        <div class="card">
+          <div class="grid cols-4">
+            <div class="stat-box green"><div class="sb-num"><%= dsaUnaided.alone %></div><div class="sb-label">🟢 Alone</div></div>
+            <div class="stat-box yellow"><div class="sb-num"><%= dsaUnaided.hint %></div><div class="sb-label">🟡 Hint</div></div>
+            <div class="stat-box orange"><div class="sb-num"><%= dsaUnaided.copilot %></div><div class="sb-label">🟠 Copilot</div></div>
+            <div class="stat-box"><div class="sb-num"><%= dsaUnaided.percent %>%</div><div class="sb-label">Unaided</div></div>
           </div>
-          <div class="tc-sub">~1.5h problems</div>
+          <div class="progress-wrap mt"><div class="progress-bar" style="width:<%= dsaUnaided.percent %>%"></div></div>
         </div>
-        <div class="toggle-card" data-field="block2_done" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.block2_done %>">
-          <div class="tc-head">
-            <span class="tc-icon">🔵</span>
-            <span class="tc-label">Block 2 · Spring Boot</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">~1.5h build</div>
-        </div>
-        <div class="toggle-card" data-field="block3_done" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.block3_done %>">
-          <div class="tc-head">
-            <span class="tc-icon">🟣</span>
-            <span class="tc-label">Block 3 · System Design</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">~1.5h theory</div>
-        </div>
-        <div class="toggle-card" data-field="block4_done" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.block4_done %>">
-          <div class="tc-head">
-            <span class="tc-icon">🟡</span>
-            <span class="tc-label">Block 4 · Revision</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">~1.5h review</div>
-        </div>
-      </div>
-      <div class="stat-pills mt">
-        <div class="stat-pill"><strong id="blocks-done">0</strong>/4 blocks done · <strong>6h</strong> total target</div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ============================== 10. SHIELDS ============================== -->
-    <section class="section" id="shields">
-      <div class="section-title">
-        <span class="icon">🛡️</span> Shields
-        <span class="hint">Protect the day, every day</span>
-      </div>
-      <div class="grid cols-3">
-        <div class="toggle-card" data-field="ghusl_rule" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.ghusl_rule %>">
-          <div class="tc-head">
-            <span class="tc-icon">🛡️</span>
-            <span class="tc-label">Ghusl Rule</span>
-            <span class="tc-check"></span>
+      <section class="section">
+        <div class="section-title"><span class="icon">🔥</span> Streak Calendar (30 days)</div>
+        <div class="card">
+          <div class="streak-grid" id="streakGrid">
+            <% (streakCalendar || []).forEach(function(d){ %>
+              <div class="streak-cell <%= d.active_day ? 'active' : 'inactive' %>" title="<%= new Date(d.date).toLocaleDateString() %> <%= d.active_day ? '✅ Active' : '— rest' %>">
+                <%= new Date(d.date).getDate() %>
+              </div>
+            <% }); %>
           </div>
-          <div class="tc-sub">Purification maintained</div>
         </div>
-        <div class="toggle-card" data-field="khalwah_shield" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.khalwah_shield %>">
-          <div class="tc-head">
-            <span class="tc-icon">🛡️</span>
-            <span class="tc-label">Khalwah Shield</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Boundaries kept</div>
-        </div>
-        <div class="toggle-card" data-field="night_protocol" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.night_protocol %>">
-          <div class="tc-head">
-            <span class="tc-icon">🛡️</span>
-            <span class="tc-label">Night Protocol</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Evening guard up</div>
-        </div>
-        <div class="toggle-card" data-field="phone_out_of_bedroom" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.phone_out_of_bedroom %>">
-          <div class="tc-head">
-            <span class="tc-icon">🛡️</span>
-            <span class="tc-label">Phone Out of Bedroom</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Sleep without screens</div>
-        </div>
-        <div class="toggle-card" data-field="lower_gaze" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.lower_gaze %>">
-          <div class="tc-head">
-            <span class="tc-icon">🛡️</span>
-            <span class="tc-label">Lower Gaze</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Guard the eyes</div>
-        </div>
-        <div class="toggle-card" data-field="no_new_riba" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.no_new_riba %>">
-          <div class="tc-head">
-            <span class="tc-icon">🛡️</span>
-            <span class="tc-label">No New Riba</span>
-            <span class="tc-check"></span>
-          </div>
-          <div class="tc-sub">Stay halal in finance</div>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ============================== 11. EVENING RESET ============================== -->
-    <section class="section" id="evening">
-      <div class="section-title">
-        <span class="icon">🌙</span> Evening Reset
-        <span class="hint">Close the day cleanly</span>
-      </div>
-      <div class="grid cols-3">
-        <div class="toggle-card" data-field="haldi_doodh" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.haldi_doodh %>">
-          <div class="tc-head">
-            <span class="tc-icon">🥛</span>
-            <span class="tc-label">Haldi Doodh</span>
-            <span class="tc-check"></span>
+      <section class="section">
+        <div class="section-title"><span class="icon">💻</span> DSA Problems (<%= dsaCount %>)</div>
+        <div class="card">
+          <div class="filter-chips" id="dsaFilters">
+            <button class="chip active" data-filter="all">All</button>
+            <button class="chip" data-filter="easy">Easy</button>
+            <button class="chip" data-filter="medium">Medium</button>
+            <button class="chip" data-filter="hard">Hard</button>
+            <button class="chip" data-filter="alone">🟢 Alone</button>
+            <button class="chip" data-filter="hint">🟡 Hint</button>
+            <button class="chip" data-filter="copilot">🟠 Copilot</button>
           </div>
-          <div class="tc-sub">Golden milk before bed</div>
-        </div>
-        <div class="toggle-card" data-field="sleep_on_wudu" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.sleep_on_wudu %>">
-          <div class="tc-head">
-            <span class="tc-icon">💧</span>
-            <span class="tc-label">Sleep on Wudu</span>
-            <span class="tc-check"></span>
+          <div class="dsa-table-wrap mt">
+            <table class="dsa-table" id="dsaTable">
+              <thead><tr><th>#</th><th>Problem</th><th>Pattern</th><th>Diff</th><th>Date</th><th>Help</th><th>Time</th><th></th></tr></thead>
+              <tbody>
+                <% (allDsa || []).forEach(function(p, i){ %>
+                  <tr class="dsa-row" data-diff="<%= p.difficulty || 'easy' %>" data-help="<%= p.help_level || 'alone' %>">
+                    <td><%= i + 1 %></td>
+                    <td><%= p.problem_name %></td>
+                    <td><%= p.pattern || '—' %></td>
+                    <td><span class="diff-<%= p.difficulty || 'easy' %>"><%= (p.difficulty || '').toUpperCase() %></span></td>
+                    <td><%= new Date(p.date).toLocaleDateString() %></td>
+                    <td><%= p.help_level === 'alone' ? '🟢' : p.help_level === 'hint' ? '🟡' : '🟠' %></td>
+                    <td><%= p.time_minutes || '—' %></td>
+                    <td><button class="btn-ghost btn-sm" onclick="editDsa(<%= p.id %>)">Edit</button> <button class="btn-ghost btn-sm" onclick="deleteDsa(<%= p.id %>)">Del</button></td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
           </div>
-          <div class="tc-sub">Rest in purity</div>
         </div>
-        <div class="toggle-card" data-field="evening_reset" tabindex="0" role="checkbox" aria-checked="<%= !!todayProgress.evening_reset %>">
-          <div class="tc-head">
-            <span class="tc-icon">✅</span>
-            <span class="tc-label">Evening Reset Done</span>
-            <span class="tc-check"></span>
+      </section>
+
+      <section class="section">
+        <div class="section-title"><span class="icon">📉</span> Historical Charts</div>
+        <% if (history && history.dsa && history.dsa.length) { %>
+          <div class="card chart-card mt">
+            <div class="card-title">DSA per day (14 days)</div>
+            <div class="chart-bars">
+              <% var maxDsa = Math.max.apply(null, history.dsa.map(function(d){ return d.count || 0; })); if(maxDsa===0) maxDsa=1; %>
+              <% history.dsa.forEach(function(d){ %>
+                <div class="chart-col"><div class="chart-bar-fill" style="height:<%= ((d.count||0)/maxDsa)*100 %>%"></div><div class="chart-label"><%= new Date(d.date).getDate() %></div></div>
+              <% }); %>
+            </div>
           </div>
-          <div class="tc-sub">Day fully closed</div>
-        </div>
-      </div>
-    </section>
+        <% } %>
+        <% if (history && history.prayers && history.prayers.length) { %>
+          <div class="card chart-card mt">
+            <div class="card-title">Prayer completion (7 days)</div>
+            <div class="chart-bars">
+              <% history.prayers.forEach(function(d){ var count=0; if(d.fajr)count++; if(d.dhuhr)count++; if(d.asr)count++; if(d.maghrib)count++; if(d.isha)count++; %>
+                <div class="chart-col"><div class="chart-bar-fill prayer-bar" style="height:<%= (count/5)*100 %>%"></div><div class="chart-label"><%= new Date(d.date).getDate() %></div></div>
+              <% }); %>
+            </div>
+          </div>
+        <% } %>
+      </section>
 
-    <!-- ============================== 12. DSA TRACKER (ENHANCED) ============================== -->
-    <section class="section" id="dsa">
-      <div class="section-title">
-        <span class="icon">💻</span> DSA Tracker
-        <span class="hint">🔥 DSA streak · <%= dsaStreak %> · <%= dsaCount %> problems total</span>
-      </div>
+    </div><!-- /tab-progress -->
 
-      <!-- Unaided stats -->
-      <% if (dsaUnaided) { %>
-      <div class="unaided-stats-card card">
-        <div class="unaided-row">
-          <span class="hl-badge hl-badge--alone">🟢 Alone: <%= dsaUnaided.alone %></span>
-          <span class="hl-badge hl-badge--hint">🟡 Hint: <%= dsaUnaided.hint %></span>
-          <span class="hl-badge hl-badge--copilot">🟠 Copilot: <%= dsaUnaided.copilot %></span>
-          <span class="unaided-percent-badge">Unaided: <strong><%= dsaUnaided.percent %>%</strong></span>
-        </div>
-        <div class="progress-wrap unaided-progress">
-          <div class="progress-bar" style="width:<%= dsaUnaided.percent %>%"></div>
-        </div>
-      </div>
-      <% } %>
-
-      <div class="card mt">
-        <div class="card-title">Add a Problem</div>
-        <form id="dsa-form">
+    <!-- ============================== TAB: JOURNAL ============================== -->
+    <div class="tab-content" id="tab-journal">
+      <section class="section">
+        <div class="section-title"><span class="icon">📝</span> Journal</div>
+        <div class="card">
           <div class="grid cols-2">
-            <div class="field">
-              <label for="dsa-name">Problem Name</label>
-              <input class="input" type="text" id="dsa-name" name="name" placeholder="e.g. Two Sum" required />
-            </div>
-            <div class="field">
-              <label for="dsa-pattern">Pattern</label>
-              <input class="input" type="text" id="dsa-pattern" name="pattern" placeholder="e.g. Hash Map, Two Pointers" />
-            </div>
-            <div class="field">
-              <label for="dsa-difficulty">Difficulty</label>
-              <select class="select" id="dsa-difficulty" name="difficulty">
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="dsa-time">Time (minutes)</label>
-              <input class="input" type="number" id="dsa-time" name="time" min="0" max="600" placeholder="e.g. 25" />
-            </div>
-            <div class="field">
-              <label for="dsa-help-level">Help Level</label>
-              <select class="select" id="dsa-help-level" name="help_level">
-                <option value="alone">🟢 Alone — solo solve</option>
-                <option value="hint">🟡 Hint — got a nudge</option>
-                <option value="copilot">🟠 Copilot — AI assisted</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="dsa-needed-help">Needed Help? (legacy)</label>
-              <select class="select" id="dsa-needed-help" name="needed_help">
-                <option value="false">No — solo solve</option>
-                <option value="true">Yes — got hints</option>
-              </select>
+            <div><label class="field-label">Type</label>
+              <select class="select" id="j-type"><option value="brain_dump">Brain Dump</option><option value="wins">3 Wins</option><option value="targets">3 Targets</option></select>
             </div>
           </div>
-          <div class="field">
-            <label for="dsa-notes">Notes</label>
-            <textarea class="textarea" id="dsa-notes" name="notes" placeholder="What did you learn? Any trick to revisit?"></textarea>
-          </div>
-          <button type="submit" class="btn btn-primary">
-            <span class="btn-label">+ Log Problem</span>
-          </button>
-        </form>
-      </div>
-
-      <div class="card mt">
-        <div class="card-title">Recent Problems</div>
-        <div class="problem-list" id="dsa-list">
-          <% if (recentDsa && recentDsa.length) { %>
-            <% recentDsa.forEach(function(p){ %>
-              <div class="problem-item">
-                <div class="p-name"><%= p.name %></div>
-                <div class="p-meta">
-                  <% if (p.pattern) { %><span>📐 <%= p.pattern %></span><% } %>
-                  <span class="diff-<%= p.difficulty || 'easy' %>"><%= (p.difficulty || 'easy').toUpperCase() %></span>
-                  <% if (p.time) { %><span>⏱ <%= p.time %> min</span><% } %>
-                  <% if (p.help_level) { %>
-                    <span class="hl-badge hl-badge--<%= p.help_level %>"><%= p.help_level %></span>
-                  <% } else if (p.needed_help) { %>
-                    <span>💡 needed help</span>
-                  <% } %>
-                </div>
-                <% if (p.notes) { %><div class="p-notes"><%= p.notes %></div><% } %>
-              </div>
-            <% }) %>
-          <% } else { %>
-            <div class="empty-state">No problems logged today. Add your first one above ↑</div>
-          <% } %>
+          <textarea class="input mt" id="j-content" placeholder="Write here..." style="min-height:100px;"></textarea>
+          <button class="btn btn-gold mt" onclick="addJournal()">💾 Save Journal</button>
         </div>
-      </div>
-    </section>
-
-    <!-- ============================== 13. JOURNAL ============================== -->
-    <section class="section" id="journal">
-      <div class="section-title">
-        <span class="icon">📝</span> Daily Journal
-        <span class="hint">Brain dump · wins · targets</span>
-      </div>
-      <div class="card">
-        <form id="journal-form">
-          <div class="field">
-            <label for="j-brain">Brain Dump 🧠</label>
-            <textarea class="textarea" id="j-brain" name="brain_dump" placeholder="Empty your head here — whatever's on your mind..."></textarea>
-          </div>
-          <div class="grid cols-2">
-            <div class="field">
-              <label for="j-wins">3 Wins 🏆</label>
-              <textarea class="textarea" id="j-wins" name="three_wins" placeholder="1. ...&#10;2. ...&#10;3. ..."></textarea>
+        <div class="card mt">
+          <div class="card-title">All Entries</div>
+          <% (allJournal || []).forEach(function(e){ %>
+            <div class="problem-item">
+              <div class="p-name"><%= e.entry_type.replace(/_/g,' ') %></div>
+              <div class="p-meta"><span><%= new Date(e.date).toLocaleDateString() %></span></div>
+              <div class="p-notes"><%= e.content %></div>
             </div>
-            <div class="field">
-              <label for="j-targets">3 Targets 🎯</label>
-              <textarea class="textarea" id="j-targets" name="three_targets" placeholder="1. ...&#10;2. ...&#10;3. ..."></textarea>
-            </div>
-          </div>
-          <button type="submit" class="btn btn-gold">
-            <span class="btn-label">💾 Save Journal</span>
-          </button>
-        </form>
-      </div>
-
-      <div class="card mt">
-        <div class="card-title">Today's Entries</div>
-        <div class="problem-list" id="journal-list">
-          <% if (journal && journal.length) { %>
-            <% journal.forEach(function(entry){ %>
-              <div class="problem-item">
-                <div class="p-name"><%= entry.entry_type.replace(/_/g,' ') %></div>
-                <div class="p-meta">
-                  <span><%= new Date(entry.date).toLocaleString('en-US', { hour:'2-digit', minute:'2-digit' }) %></span>
-                </div>
-                <div class="p-notes"><%= entry.content %></div>
-              </div>
-            <% }) %>
-          <% } else { %>
-            <div class="empty-state">No journal entries yet today.</div>
-          <% } %>
+          <% }); %>
         </div>
-      </div>
-    </section>
+      </section>
+    </div><!-- /tab-journal -->
 
-    <!-- ============================== 14. WEEKLY REVIEW ============================== -->
-    <section class="section" id="review">
-      <div class="section-title">
-        <span class="icon">📊</span> Weekly Review
-        <span class="hint"><% if (review) { %>Week <%= review.week_number %><% } else { %>Not yet submitted this week<% } %></span>
-      </div>
-      <div class="card">
-        <form id="review-form">
-          <div class="grid cols-2">
-            <div class="field">
-              <label for="r-salah">Salah Hits (of 35)</label>
-              <input class="input" type="number" id="r-salah" name="salah_hits" min="0" max="35"
-                     value="<%= review ? review.salah_hits : '' %>" placeholder="e.g. 28" />
-            </div>
-            <div class="field">
-              <label for="r-dsa">DSA Count</label>
-              <input class="input" type="number" id="r-dsa" name="dsa_count" min="0"
-                     value="<%= review ? review.dsa_count : '' %>" placeholder="e.g. 18" />
+    <!-- ============================== TAB: SETTINGS ============================== -->
+    <div class="tab-content" id="tab-settings">
+      <section class="section">
+        <div class="section-title"><span class="icon">⚙️</span> Settings</div>
+        <div class="card">
+          <div class="field"><label class="field-label">Motivational Quotes</label>
+            <select class="select" id="set-quotes"><option value="true" <%= settings.quotes_toggle !== false ? 'selected' : '' %>>On</option><option value="false" <%= settings.quotes_toggle === false ? 'selected' : '' %>>Off</option></select>
+          </div>
+          <div class="field"><label class="field-label">Chart Range</label>
+            <select class="select" id="set-chart"><option value="7" <%= settings.chart_range == 7 ? 'selected' : '' %>>7 days</option><option value="14" <%= settings.chart_range == 14 ? 'selected' : '' %>>14 days</option><option value="30" <%= settings.chart_range == 30 ? 'selected' : '' %>>30 days</option></select>
+          </div>
+          <div class="field"><label class="field-label">Dua Mode</label>
+            <select class="select" id="set-dua"><option value="none" <%= settings.dua_mode == 'none' ? 'selected' : '' %>>None</option><option value="morning" <%= settings.dua_mode == 'morning' ? 'selected' : '' %>>Morning</option><option value="night" <%= settings.dua_mode == 'night' ? 'selected' : '' %>>Night</option></select>
+          </div>
+          <div class="field"><label class="field-label">Learning Block Names</label>
+            <div class="grid cols-2">
+              <% for (var b = 0; b < 4; b++) { %>
+                <input class="input" type="text" id="set-block-<%= b %>" value="<%= (settings.learning_blocks && settings.learning_blocks[b]) || ['DSA','Spring Boot','System Design','Revision'][b] %>" />
+              <% } %>
             </div>
           </div>
-          <div class="field">
-            <label for="r-notes">Week Notes</label>
-            <textarea class="textarea" id="r-notes" name="notes" placeholder="What went well? What to improve next week?"><%= review ? review.notes : '' %></textarea>
-          </div>
-          <div class="field">
-            <label for="r-shield">Shield Notes</label>
-            <textarea class="textarea" id="r-shield" name="shield_notes" placeholder="How did the shields hold up this week?"><%= review ? review.shield_notes : '' %></textarea>
-          </div>
-          <button type="submit" class="btn btn-primary">
-            <span class="btn-label">📋 Save Weekly Review</span>
-          </button>
-        </form>
-      </div>
-    </section>
-
-    <!-- ============================== 15. HISTORICAL CHARTS ============================== -->
-    <section class="section" id="charts">
-      <div class="section-title">
-        <span class="icon">📉</span> Historical Charts
-        <span class="hint">Trends over time</span>
-      </div>
-
-      <% if (history && history.dsa && history.dsa.length) { %>
-      <%
-        var maxDsa = Math.max.apply(null, history.dsa.map(function(d){ return d.count || 0; }));
-        if (maxDsa === 0) maxDsa = 1;
-      %>
-      <div class="card chart-card">
-        <div class="card-title">DSA Problems Per Day (Last 14 Days)</div>
-        <div class="chart-bars" id="chart-dsa">
-          <% history.dsa.forEach(function(d){ %>
-            <div class="chart-col" data-count="<%= d.count %>">
-              <div class="chart-bar-wrap">
-                <div class="chart-bar chart-bar--emerald" style="height:<%= d.count > 0 ? Math.max(4, (d.count / maxDsa * 100)) : 0 %>%" title="<%= d.count %> problems">
-                  <span class="chart-val"><%= d.count %></span>
-                </div>
-              </div>
-              <span class="chart-date"><%= new Date(d.date).toLocaleDateString('en-US', { month:'numeric', day:'numeric' }) %></span>
-            </div>
-          <% }) %>
+          <button class="btn btn-primary mt" onclick="saveSettings()">💾 Save Settings</button>
         </div>
-      </div>
-      <% } %>
-
-      <% if (history && history.bars && history.bars.length) { %>
-      <div class="card chart-card mt">
-        <div class="card-title">Bar Hits (Last 7 Days)</div>
-        <div class="chart-bars" id="chart-bars">
-          <% history.bars.forEach(function(d){ %>
-            <div class="chart-col" data-bar="<%= d.bar_hit || '' %>">
-              <div class="chart-bar-wrap">
-                <div class="chart-bar <%= d.bar_hit === 'high' ? 'chart-bar--gold' : d.bar_hit === 'low' ? 'chart-bar--emerald' : 'chart-bar--empty' %>" style="height:<%= d.bar_hit ? 100 : 4 %>%">
-                  <span class="chart-val"><%= d.bar_hit === 'high' ? '🟡' : d.bar_hit === 'low' ? '🟢' : '—' %></span>
-                </div>
-              </div>
-              <span class="chart-date"><%= new Date(d.date).toLocaleDateString('en-US', { weekday:'short' }) %></span>
-            </div>
-          <% }) %>
-        </div>
-      </div>
-      <% } %>
-
-      <% if (history && history.prayers && history.prayers.length) { %>
-      <div class="card chart-card mt">
-        <div class="card-title">Prayer Completion (Last 7 Days)</div>
-        <div class="chart-bars" id="chart-prayers">
-          <% history.prayers.forEach(function(d){ %>
-            <%
-              var total = (d.fajr?1:0) + (d.dhuhr?1:0) + (d.asr?1:0) + (d.maghrib?1:0) + (d.isha?1:0);
-              var pct = (total / 5) * 100;
-            %>
-            <div class="chart-col" data-prayers="<%= total %>">
-              <div class="chart-bar-wrap">
-                <div class="chart-bar chart-bar--emerald" style="height:<%= total > 0 ? Math.max(8, pct) : 4 %>%">
-                  <span class="chart-val"><%= total %>/5</span>
-                </div>
-              </div>
-              <span class="chart-date"><%= new Date(d.date).toLocaleDateString('en-US', { weekday:'short' }) %></span>
-            </div>
-          <% }) %>
-        </div>
-      </div>
-      <% } %>
-    </section>
+      </section>
+    </div><!-- /tab-settings -->
 
   </main>
 
-  <!-- ============================== 16. FOOTER QUOTE ============================== -->
+  <!-- FOOTER QUOTE -->
+  <% if (settings.quotes_toggle !== false) { %>
   <footer class="app-footer">
     <div class="container">
       <div class="quote-block">
-        <div class="quote-text" id="quote-text">Loading today's motivation…</div>
+        <div class="quote-text" id="quote-text">Loading…</div>
         <div class="quote-author" id="quote-author"></div>
       </div>
     </div>
   </footer>
+  <% } %>
 
-  <!-- Toast -->
+  <!-- DSA EDIT MODAL -->
+  <div class="modal-overlay" id="dsaModal" style="display:none;">
+    <div class="modal">
+      <div class="modal-title">Edit DSA Problem</div>
+      <input type="hidden" id="edit-id" />
+      <input class="input" type="text" id="edit-name" placeholder="Problem Name" />
+      <input class="input mt" type="text" id="edit-pattern" placeholder="Pattern" />
+      <div class="grid cols-2 mt">
+        <select class="select" id="edit-diff"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select>
+        <select class="select" id="edit-help"><option value="alone">🟢 Alone</option><option value="hint">🟡 Hint</option><option value="copilot">🟠 Copilot</option></select>
+      </div>
+      <div class="grid cols-2 mt">
+        <input class="input" type="number" id="edit-time" placeholder="Time (min)" />
+        <input class="input" type="date" id="edit-date" />
+      </div>
+      <textarea class="input mt" id="edit-notes" placeholder="Notes" style="min-height:60px;"></textarea>
+      <div class="row mt" style="gap:8px;">
+        <button class="btn btn-primary" onclick="saveDsaEdit()">Save</button>
+        <button class="btn btn-ghost" onclick="closeDsaModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
   <div class="toast" id="toast">Saved ✓</div>
 
-  <!-- Pass server data to client -->
-  <script id="server-data" type="application/json">
-  <%- JSON.stringify({
-    todayProgress: todayProgress || {},
-    history: history || { dsa: [], bars: [], prayers: [] },
-    recentDsa: recentDsa || []
-  }) %>
-  </script>
-
   <script>
-  /* =====================================================================
-     Client-side logic: toggles, AJAX, DSA list, journal, review, quotes, charts
-     ===================================================================== */
   (function () {
     "use strict";
+    var todayProgress = <%- JSON.stringify(todayProgress || {}) %>;
+    var allDsaData = <%- JSON.stringify(allDsa || []) %>;
 
-    /* Parse server-injected data */
-    var serverData = JSON.parse(document.getElementById('server-data').textContent);
-    var todayProgress = serverData.todayProgress;
-    var history = serverData.history;
-    var recentDsa = serverData.recentDsa;
+    var toastEl = document.getElementById('toast'), toastTimer;
+    function toast(msg, isError) { toastEl.textContent = msg; toastEl.classList.toggle('error', !!isError); toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 2200); }
 
-    /* ---- Toast ---- */
-    var toastEl = document.getElementById('toast');
-    var toastTimer;
-    function toast(msg, isError) {
-      toastEl.textContent = msg;
-      toastEl.classList.toggle('error', !!isError);
-      toastEl.classList.add('show');
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 2200);
-    }
-
-    /* ---- Initialize toggle cards ---- */
-    var cards = document.querySelectorAll('.toggle-card');
-    cards.forEach(function (card) {
-      var field = card.getAttribute('data-field');
-      if (todayProgress[field]) {
-        card.classList.add('checked');
-        card.setAttribute('aria-checked', 'true');
-      } else {
-        card.setAttribute('aria-checked', 'false');
-      }
-
-      function toggle() {
-        var newVal = !card.classList.contains('checked');
-        setProgress(field, newVal, card);
-      }
-
-      card.addEventListener('click', function (e) {
-        e.preventDefault();
-        toggle();
-      });
-      card.addEventListener('keydown', function (e) {
-        if (e.key === ' ' || e.key === 'Enter') {
-          e.preventDefault();
-          toggle();
-        }
+    /* Tab navigation */
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+        document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
       });
     });
 
-    /* ---- AJAX: POST /api/progress ---- */
-    /* Allowed fields including the new ones */
-    var allowedFields = [
-      'survival_layer','tahajjud','fajr','duha','fasting','jumuah',
-      'dhuhr','asr','maghrib','isha',
-      'morning_reading','targets_set','house_task',
-      'mma','post_workout_meal','shower',
-      'block1_done','block2_done','block3_done','block4_done',
-      'ghusl_rule','khalwah_shield','night_protocol','phone_out_of_bedroom','lower_gaze','no_new_riba',
-      'haldi_doodh','sleep_on_wudu','evening_reset',
-      'bar_hit','mode_used','office_time_used','claude_cert_minutes','active_day'
-    ];
+    /* Toggle cards */
+    document.querySelectorAll('.toggle-card').forEach(function(card) {
+      var field = card.getAttribute('data-field');
+      if (todayProgress[field]) { card.classList.add('checked'); card.setAttribute('aria-checked','true'); }
+      function toggle() { setProgress(field, !card.classList.contains('checked'), card); }
+      card.addEventListener('click', function(e){ e.preventDefault(); toggle(); });
+      card.addEventListener('keydown', function(e){ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } });
+    });
 
     function setProgress(field, value, card) {
       var prev = card.classList.contains('checked');
-      // optimistic
-      card.classList.toggle('checked', value);
-      card.setAttribute('aria-checked', String(value));
+      card.classList.toggle('checked', value); card.setAttribute('aria-checked', String(value));
       updateDerived();
-
-      var body = new URLSearchParams();
-      body.append('field', field);
-      body.append('value', value ? '1' : '0');
-
-      fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString()
-      })
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then(function () {
-        todayProgress[field] = value;
-        toast(value ? '✓ Logged' : '✗ Unchecked');
-      })
-      .catch(function () {
-        // rollback
-        card.classList.toggle('checked', prev);
-        card.setAttribute('aria-checked', String(prev));
-        updateDerived();
-        toast('Failed to save — check connection', true);
-      });
+      var body = new URLSearchParams(); body.append('field', field); body.append('value', value ? '1' : '0');
+      fetch('/api/progress', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+        .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+        .then(function(){ todayProgress[field]=value; toast(value?'✓ Logged':'✗ Unchecked'); })
+        .catch(function(){ card.classList.toggle('checked',prev); card.setAttribute('aria-checked',String(prev)); updateDerived(); toast('Failed to save', true); });
     }
 
-    /* ---- Derived UI: blocks counter + salah celebration ---- */
     var blockFields = ['block1_done','block2_done','block3_done','block4_done'];
     var salahFields = ['fajr','dhuhr','asr','maghrib','isha'];
-
     function updateDerived() {
-      // blocks
-      var done = blockFields.filter(function (f) {
-        var c = document.querySelector('.toggle-card[data-field="' + f + '"]');
-        return c && c.classList.contains('checked');
-      }).length;
-      var bd = document.getElementById('blocks-done');
-      if (bd) bd.textContent = done;
-
-      // salah celebration — must check the salah-section cards specifically
+      var done = blockFields.filter(function(f){ var c=document.querySelector('.toggle-card[data-field="'+f+'"]'); return c && c.classList.contains('checked'); }).length;
+      var bd = document.getElementById('blocks-done'); if (bd) bd.textContent = done;
       var salahCards = document.querySelectorAll('#salah .toggle-card');
       var allSalah = true;
-      salahCards.forEach(function (c) {
-        var f = c.getAttribute('data-field');
-        if (salahFields.indexOf(f) !== -1 && !c.classList.contains('checked')) allSalah = false;
-      });
-      var cel = document.getElementById('salah-celebrate');
-      if (cel) cel.classList.toggle('show', allSalah && salahCards.length >= 5);
+      salahCards.forEach(function(c){ var f=c.getAttribute('data-field'); if(salahFields.indexOf(f)!==-1 && !c.classList.contains('checked')) allSalah=false; });
+      var cel = document.getElementById('salah-celebrate'); if(cel) cel.classList.toggle('show', allSalah && salahCards.length>=5);
     }
     updateDerived();
 
-    /* ---- DSA form ---- */
-    var dsaForm = document.getElementById('dsa-form');
-    dsaForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var btn = dsaForm.querySelector('button');
-      var label = btn.querySelector('.btn-label');
-      var orig = label.textContent;
-      label.innerHTML = '<span class="spin">⏳</span> Saving…';
-      btn.disabled = true;
-
-      var body = new URLSearchParams(new FormData(dsaForm));
-      fetch('/api/dsa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString()
-      })
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then(function (data) {
-        addProblemToList(data.problem || data);
-        dsaForm.reset();
-        toast('💪 Problem logged!');
-      })
-      .catch(function () { toast('Failed to log problem', true); })
-      .finally(function () {
-        label.textContent = orig;
-        btn.disabled = false;
+    /* DSA filter chips */
+    document.querySelectorAll('#dsaFilters .chip').forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        document.querySelectorAll('#dsaFilters .chip').forEach(function(c){ c.classList.remove('active'); });
+        chip.classList.add('active');
+        var filter = chip.dataset.filter;
+        document.querySelectorAll('#dsaTable .dsa-row').forEach(function(row) {
+          if (filter === 'all') { row.style.display = ''; }
+          else if (filter === 'easy' || filter === 'medium' || filter === 'hard') { row.style.display = row.dataset.diff === filter ? '' : 'none'; }
+          else { row.style.display = row.dataset.help === filter ? '' : 'none'; }
+        });
       });
     });
 
-    function escapeHtml(s) {
-      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-        return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
-      });
-    }
+    /* DSA edit modal */
+    window.editDsa = function(id) {
+      var p = allDsaData.find(function(d){ return d.id == id; });
+      if (!p) return;
+      document.getElementById('edit-id').value = p.id;
+      document.getElementById('edit-name').value = p.problem_name || '';
+      document.getElementById('edit-pattern').value = p.pattern || '';
+      document.getElementById('edit-diff').value = p.difficulty || 'easy';
+      document.getElementById('edit-help').value = p.help_level || 'alone';
+      document.getElementById('edit-time').value = p.time_minutes || '';
+      document.getElementById('edit-date').value = p.date ? new Date(p.date).toISOString().split('T')[0] : '';
+      document.getElementById('edit-notes').value = p.notes || '';
+      document.getElementById('dsaModal').style.display = 'flex';
+    };
+    window.closeDsaModal = function() { document.getElementById('dsaModal').style.display = 'none'; };
+    window.saveDsaEdit = function() {
+      var body = new URLSearchParams();
+      body.append('problem_name', document.getElementById('edit-name').value);
+      body.append('pattern', document.getElementById('edit-pattern').value);
+      body.append('difficulty', document.getElementById('edit-diff').value);
+      body.append('help_level', document.getElementById('edit-help').value);
+      body.append('time_minutes', document.getElementById('edit-time').value);
+      body.append('date', document.getElementById('edit-date').value);
+      body.append('notes', document.getElementById('edit-notes').value);
+      body.append('needed_help', document.getElementById('edit-help').value !== 'alone');
+      var id = document.getElementById('edit-id').value;
+      fetch('/api/dsa/' + id, { method:'PUT', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+        .then(function(r){ return r.json(); })
+        .then(function(){ toast('✓ Updated'); setTimeout(function(){ location.reload(); }, 800); })
+        .catch(function(){ toast('Failed', true); });
+    };
+    window.deleteDsa = function(id) {
+      if (!confirm('Delete this problem?')) return;
+      fetch('/api/dsa/' + id, { method:'DELETE' })
+        .then(function(r){ return r.json(); })
+        .then(function(){ toast('✓ Deleted'); setTimeout(function(){ location.reload(); }, 600); })
+        .catch(function(){ toast('Failed', true); });
+    };
 
-    function addProblemToList(p) {
-      var list = document.getElementById('dsa-list');
-      var empty = list.querySelector('.empty-state');
-      if (empty) empty.remove();
-      var div = document.createElement('div');
-      div.className = 'problem-item';
-      var diff = p.difficulty || 'easy';
-      var diffClass = 'diff-' + diff;
-      var hl = p.help_level || '';
-      var hlBadge = hl ? '<span class="hl-badge hl-badge--' + escapeHtml(hl) + '">' + escapeHtml(hl) + '</span>' : '';
-      var neededHelp = p.needed_help ? '<span>💡 needed help</span>' : '';
-      div.innerHTML =
-        '<div class="p-name">' + escapeHtml(p.name) + '</div>' +
-        '<div class="p-meta">' +
-          (p.pattern ? '<span>📐 ' + escapeHtml(p.pattern) + '</span>' : '') +
-          '<span class="' + diffClass + '">' + escapeHtml(diff.toUpperCase()) + '</span>' +
-          (p.time ? '<span>⏱ ' + escapeHtml(p.time) + ' min</span>' : '') +
-          hlBadge + neededHelp +
-        '</div>' +
-        (p.notes ? '<div class="p-notes">' + escapeHtml(p.notes) + '</div>' : '');
-      list.prepend(div);
-    }
+    /* Exam session */
+    window.addExamSession = function() {
+      var body = new URLSearchParams();
+      body.append('topic', document.getElementById('exam-topic').value);
+      body.append('minutes_studied', document.getElementById('exam-mins').value);
+      body.append('ready_score', document.getElementById('exam-score').value);
+      body.append('notes', document.getElementById('exam-notes').value);
+      fetch('/api/exam', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+        .then(function(r){ return r.json(); })
+        .then(function(){ toast('✓ Session logged'); setTimeout(function(){ location.reload(); }, 800); })
+        .catch(function(){ toast('Failed', true); });
+    };
 
-    /* ---- Journal form ---- */
-    var jForm = document.getElementById('journal-form');
-    jForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var btn = jForm.querySelector('button');
-      var label = btn.querySelector('.btn-label');
-      var orig = label.textContent;
-      label.innerHTML = '<span class="spin">⏳</span> Saving…';
-      btn.disabled = true;
+    /* Journal */
+    window.addJournal = function() {
+      var body = new URLSearchParams();
+      body.append('entry_type', document.getElementById('j-type').value);
+      body.append('content', document.getElementById('j-content').value);
+      fetch('/api/journal', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+        .then(function(r){ return r.json(); })
+        .then(function(){ toast('✓ Journal saved'); document.getElementById('j-content').value=''; })
+        .catch(function(){ toast('Failed', true); });
+    };
 
-      var body = new URLSearchParams(new FormData(jForm));
-      fetch('/api/journal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString()
-      })
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then(function () {
-        toast('📝 Journal saved!');
-      })
-      .catch(function () { toast('Failed to save journal', true); })
-      .finally(function () {
-        label.textContent = orig;
-        btn.disabled = false;
-      });
-    });
+    /* Settings */
+    window.saveSettings = function() {
+      var blocks = [];
+      for (var i = 0; i < 4; i++) blocks.push(document.getElementById('set-block-'+i).value);
+      var body = new URLSearchParams();
+      body.append('quotes_toggle', document.getElementById('set-quotes').value === 'true');
+      body.append('chart_range', document.getElementById('set-chart').value);
+      body.append('dua_mode', document.getElementById('set-dua').value);
+      body.append('learning_blocks', JSON.stringify(blocks));
+      fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+        .then(function(r){ return r.json(); })
+        .then(function(){ toast('✓ Settings saved'); })
+        .catch(function(){ toast('Failed', true); });
+    };
 
-    /* ---- Weekly review form ---- */
-    var rForm = document.getElementById('review-form');
-    rForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var btn = rForm.querySelector('button');
-      var label = btn.querySelector('.btn-label');
-      var orig = label.textContent;
-      label.innerHTML = '<span class="spin">⏳</span> Saving…';
-      btn.disabled = true;
-
-      var body = new URLSearchParams(new FormData(rForm));
-      fetch('/api/review', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString()
-      })
-      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then(function () { toast('📋 Review saved!'); })
-      .catch(function () { toast('Failed to save review', true); })
-      .finally(function () {
-        label.textContent = orig;
-        btn.disabled = false;
-      });
-    });
-
-    /* ---- Rotating footer quote (daily) ---- */
+    /* Rotating quotes */
     var quotes = [
       { t: "Verily, with hardship comes ease.", a: "Qur'an 94:6" },
-      { t: "The best of people are those most beneficial to people.", a: "Prophet Muhammad ﷺ" },
       { t: "The strong believer is better and more beloved to Allah than the weak believer, though in both is good.", a: "Prophet Muhammad ﷺ" },
       { t: "Take advantage of five before five: your youth before old age, your health before sickness, your wealth before poverty, your free time before busyness, your life before death.", a: "Prophet Muhammad ﷺ" },
       { t: "Allah does not burden a soul beyond that it can bear.", a: "Qur'an 2:286" },
-      { t: "Discipline is the bridge between goals and accomplishment.", a: "Jim Rohn" },
-      { t: "You are what you repeatedly do. Excellence is a habit, not an act.", a: "Aristotle" },
-      { t: "When you arise in the morning, think of what a precious privilege it is to be alive.", a: "Marcus Aurelius" },
+      { t: "Indeed, Allah will not change the condition of a people until they change what is in themselves.", a: "Qur'an 13:11" },
       { t: "The secret of getting ahead is getting started.", a: "Mark Twain" },
+      { t: "You are what you repeatedly do. Excellence is a habit, not an act.", a: "Aristotle" },
       { t: "And whoever puts their trust in Allah — He is sufficient for them.", a: "Qur'an 65:3" },
       { t: "Do not despise any good deed, even meeting your brother with a cheerful face.", a: "Prophet Muhammad ﷺ" },
-      { t: "Your life is a ship; discipline is the sail, and intention is the compass.", a: "Unknown" },
-      { t: "Indeed, Allah will not change the condition of a people until they change what is in themselves.", a: "Qur'an 13:11" },
+      { t: "Fall seven times, stand up eight.", a: "Japanese Proverb" },
+      { t: "Discipline is the bridge between goals and accomplishment.", a: "Jim Rohn" },
       { t: "The one who is not grateful to people is not grateful to Allah.", a: "Prophet Muhammad ﷺ" },
-      { t: "Fall seven times, stand up eight.", a: "Japanese Proverb" }
+      { t: "Your life is a ship; discipline is the sail, and intention is the compass.", a: "Unknown" },
+      { t: "When you arise in the morning, think of what a precious privilege it is to be alive.", a: "Marcus Aurelius" },
+      { t: "The best of people are those most beneficial to people.", a: "Prophet Muhammad ﷺ" }
     ];
     var q = quotes[new Date().getDate() % quotes.length];
-    document.getElementById('quote-text').textContent = '"' + q.t + '"';
-    document.getElementById('quote-author').textContent = '— ' + q.a;
+    var qt = document.getElementById('quote-text');
+    var qa = document.getElementById('quote-author');
+    if (qt) qt.textContent = '"' + q.t + '"';
+    if (qa) qa.textContent = '— ' + q.a;
 
   })();
   </script>
