@@ -28,11 +28,17 @@ app.use(session({
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Auth middleware — public profile, no login needed
-// For API endpoints that modify data, accept either session OR api key
+// Auth middleware — public view, passcode for edits
+// Dashboard GET is public. All POST/PUT/DELETE require an edit token.
+const EDIT_PASSCODE = process.env.EDIT_PASSCODE || 'ramish2026';
+
 const requireApiAuth = (req, res, next) => {
-  // Public profile — allow all requests (userId=1 hardcoded)
-  return next();
+  // Check header: x-edit-token
+  const token = req.headers['x-edit-token'] || req.query.edit_token;
+  if (token === EDIT_PASSCODE) return next();
+  // Also accept session (legacy login)
+  if (req.session.user) return next();
+  res.status(401).json({ error: 'Edit auth required', needAuth: true });
 };
 
 // API key auth for Hermes sync
@@ -44,7 +50,16 @@ const requireApiKey = (req, res, next) => {
 
 // ============= ROUTES =============
 
-// Login
+// Verify edit token (for frontend auth check)
+app.post('/api/auth/verify', (req, res) => {
+  const { passcode } = req.body;
+  if (passcode === EDIT_PASSCODE) {
+    return res.json({ success: true, token: EDIT_PASSCODE });
+  }
+  res.status(401).json({ error: 'Invalid passcode' });
+});
+
+// Login (kept for compatibility)
 app.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
@@ -239,8 +254,8 @@ app.get('/', async (req, res) => {
   }
 });
 
-// Toggle progress (public edit — no login, userId=1)
-app.post('/api/progress', async (req, res) => {
+// Toggle progress (public view, auth for edit)
+app.post('/api/progress', requireApiAuth, async (req, res) => {
   const userId = 1;
   const { field, value } = req.body;
   const today = new Date().toISOString().split('T')[0];

@@ -689,6 +689,64 @@
       toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 2200);
     }
 
+    /* ===== Edit Auth System ===== */
+    var editToken = localStorage.getItem('editToken') || '';
+
+    function showAuthModal(retryFn) {
+      var overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.style.display = 'flex';
+      overlay.innerHTML = '<div class="modal"><div class="modal-title">🔒 Enter Edit Passcode</div><input class="input" type="password" id="auth-passcode" placeholder="Passcode" autofocus/><div class="row mt" style="gap:8px;"><button class="btn btn-primary" id="auth-submit">Unlock Edits</button><button class="btn btn-ghost" id="auth-cancel">Cancel</button></div><div id="auth-error" style="color:var(--danger);font-size:0.85rem;margin-top:8px;display:none;">Wrong passcode</div></div>';
+      document.body.appendChild(overlay);
+      var input = overlay.querySelector('#auth-passcode');
+      input.focus();
+      function submit() {
+        var passcode = input.value;
+        fetch('/api/auth/verify', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:'passcode='+encodeURIComponent(passcode) })
+          .then(function(r){ return r.json(); })
+          .then(function(data){
+            if (data.success) {
+              editToken = data.token;
+              localStorage.setItem('editToken', editToken);
+              overlay.remove();
+              toast('✓ Edit mode unlocked');
+              if (retryFn) retryFn();
+            } else {
+              overlay.querySelector('#auth-error').style.display = 'block';
+              input.value = '';
+              input.focus();
+            }
+          })
+          .catch(function(){ overlay.querySelector('#auth-error').style.display = 'block'; });
+      }
+      overlay.querySelector('#auth-submit').addEventListener('click', submit);
+      overlay.querySelector('#auth-cancel').addEventListener('click', function(){ overlay.remove(); });
+      input.addEventListener('keydown', function(e){ if(e.key==='Enter') submit(); });
+    }
+
+    function authFetch(url, options) {
+      options = options || {};
+      options.headers = options.headers || {};
+      options.headers['x-edit-token'] = editToken;
+      return fetch(url, options).then(function(r) {
+        if (r.status === 401) {
+          return r.json().then(function(data) {
+            if (data.needAuth) {
+              return new Promise(function(resolve, reject) {
+                showAuthModal(function() {
+                  // Retry after auth
+                  options.headers['x-edit-token'] = editToken;
+                  fetch(url, options).then(resolve).catch(reject);
+                });
+              });
+            }
+            throw new Error('Unauthorized');
+          });
+        }
+        return r;
+      });
+    }
+
     /* ===== Tab navigation ===== */
     function activateTab(tabName) {
       document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
@@ -716,7 +774,7 @@
       card.classList.toggle('checked', value); card.setAttribute('aria-checked', String(value));
       updateDerived(); updateShieldHex();
       var body = new URLSearchParams(); body.append('field', field); body.append('value', value ? '1' : '0');
-      fetch('/api/progress', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+      authFetch('/api/progress', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
         .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
         .then(function(){ todayProgress[field]=value; toast(value?'✓ Logged':'✗ Unchecked'); })
         .catch(function(){ card.classList.toggle('checked',prev); card.setAttribute('aria-checked',String(prev)); updateDerived(); updateShieldHex(); toast('Failed to save', true); });
@@ -812,14 +870,14 @@
       body.append('notes', document.getElementById('edit-notes').value);
       body.append('needed_help', document.getElementById('edit-help').value !== 'alone');
       var id = document.getElementById('edit-id').value;
-      fetch('/api/dsa/' + id, { method:'PUT', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+      authFetch('/api/dsa/' + id, { method:'PUT', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
         .then(function(r){ return r.json(); })
         .then(function(){ toast('✓ Updated'); setTimeout(function(){ location.reload(); }, 800); })
         .catch(function(){ toast('Failed', true); });
     };
     window.deleteDsa = function(id) {
       if (!confirm('Delete this problem?')) return;
-      fetch('/api/dsa/' + id, { method:'DELETE' })
+      authFetch('/api/dsa/' + id, { method:'DELETE' })
         .then(function(r){ return r.json(); })
         .then(function(){ toast('✓ Deleted'); setTimeout(function(){ location.reload(); }, 600); })
         .catch(function(){ toast('Failed', true); });
@@ -832,7 +890,7 @@
       body.append('minutes_studied', document.getElementById('exam-mins').value);
       body.append('ready_score', document.getElementById('exam-score').value);
       body.append('notes', document.getElementById('exam-notes').value);
-      fetch('/api/exam', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+      authFetch('/api/exam', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
         .then(function(r){ return r.json(); })
         .then(function(){ toast('✓ Session logged'); setTimeout(function(){ location.reload(); }, 800); })
         .catch(function(){ toast('Failed', true); });
@@ -843,7 +901,7 @@
       var body = new URLSearchParams();
       body.append('entry_type', document.getElementById('j-type').value);
       body.append('content', document.getElementById('j-content').value);
-      fetch('/api/journal', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+      authFetch('/api/journal', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
         .then(function(r){ return r.json(); })
         .then(function(){ toast('✓ Journal saved'); document.getElementById('j-content').value=''; setTimeout(function(){ location.reload(); }, 800); })
         .catch(function(){ toast('Failed', true); });
@@ -859,7 +917,7 @@
       body.append('chart_range', document.getElementById('set-chart').value);
       body.append('dua_mode', document.getElementById('set-dua').value);
       body.append('learning_blocks', JSON.stringify(blocks));
-      fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+      authFetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
         .then(function(r){ return r.json(); })
         .then(function(){ toast('✓ Settings saved'); })
         .catch(function(){ toast('Failed', true); });
@@ -929,7 +987,7 @@
     window.setBar = function(level) {
       var body = new URLSearchParams();
       body.append('bar_level', level);
-      fetch('/api/bar', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+      authFetch('/api/bar', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
         .then(function(r){ return r.json(); })
         .then(function(){ toast('✓ Bar set to ' + level); location.reload(); })
         .catch(function(){ toast('Failed', true); });
@@ -940,7 +998,7 @@
       var body = new URLSearchParams();
       body.append('field', 'bar_hit');
       body.append('value', val === 'none' ? '' : val);
-      fetch('/api/progress', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+      authFetch('/api/progress', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
         .then(function(r){ return r.json(); })
         .then(function(){ toast('✓ Bar updated'); location.reload(); })
         .catch(function(){ toast('Failed', true); });
@@ -995,7 +1053,7 @@
         body.append(cb.dataset.field, cb.checked ? '1' : '0');
       });
       body.append('bar_hit', document.getElementById('past-bar').value);
-      fetch('/api/progress/' + encodeURIComponent(date), { method:'PUT', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+      authFetch('/api/progress/' + encodeURIComponent(date), { method:'PUT', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
         .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
         .then(function(){ toast('✓ Day updated'); closePastDayModal(); })
         .catch(function(){ toast('Failed to save', true); });
