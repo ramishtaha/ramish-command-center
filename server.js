@@ -180,6 +180,24 @@ app.get('/', requireAuth, async (req, res) => {
     // === EXAM/CERT DASHBOARD DATA ===
     const examData = await getExamDashboard(req.session.user.id);
     
+    // === STREAK CALENDAR (30 days) ===
+    const streakCalRaw = await pool.query("SELECT date, salah_complete, dsa_done, active_day, bar_hit FROM daily_progress WHERE user_id = $1 AND date >= NOW() - INTERVAL '30 days' ORDER BY date", [req.session.user.id]);
+    const streakCalendar = streakCalRaw.rows;
+    
+    // === ALL DSA for table ===
+    const allDsa = await pool.query('SELECT * FROM dsa_log WHERE user_id = $1 ORDER BY date DESC, created_at DESC', [req.session.user.id]);
+    
+    // === ALL JOURNAL ===
+    const allJournal = await pool.query('SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC', [req.session.user.id]);
+    
+    // Flatten motivation + examData for template
+    const examStats = {
+      totalMinutes: examData.totalMinutes || 0,
+      topics: examData.topicsCovered || 0,
+      topScore: (examData.latestReadiness && examData.latestReadiness.ready_score) || 0,
+      daysUntilCert: examData.daysUntilExam || 0
+    };
+    
     res.render('dashboard', {
       user: req.session.user,
       todayProgress,
@@ -193,7 +211,7 @@ app.get('/', requireAuth, async (req, res) => {
       review: review.rows[0],
       recentDsa: recentDsa.rows,
       today: new Date(),
-      // NEW: enhanced variables
+      // Enhanced variables
       activeDayCount,
       dsaUnaided,
       history,
@@ -202,11 +220,21 @@ app.get('/', requireAuth, async (req, res) => {
       overdueRevisions,
       unaidedQueue,
       projection,
-      // NEW: motivation engine
-      motivation,
-      // NEW: exam data
-      examData,
-      // NEW: settings
+      // Motivation engine (flattened)
+      disciplineScore: motivation.disciplineScore,
+      milestoneNext: motivation.milestoneNext,
+      daysUntilOffer: motivation.daysUntilOffer,
+      focusScore: motivation.focusScore,
+      weeklyTargetProgress: motivation.weeklyTargetProgress,
+      // Exam data (flattened)
+      examStats,
+      examData: examData.latestReadiness ? [examData.latestReadiness] : [],
+      // Streak calendar
+      streakCalendar,
+      // All data for tabs
+      allDsa: allDsa.rows,
+      allJournal: allJournal.rows,
+      // Settings
       settings
     });
   } catch (err) {
@@ -967,27 +995,22 @@ async function computeMotivation(userId, weekStats, dsaCountNum, activeDayCount,
     const daysSinceStart = Math.max(Math.ceil((new Date() - startDate) / (1000 * 60 * 60 * 24)), 1);
     const disciplineScore = Math.round(((salahDays * 0.3 + survivalDays * 0.25 + dsaDays * 0.25 + activeDays * 0.2) / daysSinceStart) * 100);
     
-    // milestoneNext: compute next milestone
-    let milestoneNext = '';
-    if (dsaCountNum < 10) {
-      milestoneNext = `${10 - dsaCountNum} more DSA problems → Way of the Scholar`;
-    } else if (dsaCountNum < 25) {
-      milestoneNext = `${25 - dsaCountNum} more DSA problems → Problem Solver`;
-    } else if (dsaCountNum < 50) {
-      milestoneNext = `${50 - dsaCountNum} more DSA problems → Algorithm Adept`;
-    } else if (dsaCountNum < 100) {
-      milestoneNext = `${100 - dsaCountNum} more DSA problems → Pattern Master`;
-    } else {
-      milestoneNext = `${171 - dsaCountNum} more DSA problems → Full Completion`;
-    }
-    
-    // Check streak milestones
+    // milestoneNext: compute next milestone as object for template
     const dsaStreakCount = await getStreak(pool, userId, 'dsa_done');
     const salahStreakCount = await getStreak(pool, userId, 'salah_complete');
-    if (dsaStreakCount < 7) {
-      milestoneNext = `${7 - dsaStreakCount} more day${7 - dsaStreakCount === 1 ? '' : 's'} → 7-day DSA streak (Consistency Crown)`;
-    } else if (salahStreakCount < 7) {
-      milestoneNext = `${7 - salahStreakCount} more day${7 - salahStreakCount === 1 ? '' : 's'} → 7-day Salah streak (Consistency Crown)`;
+    
+    const milestones = [
+      { threshold: 10, current: dsaCountNum, label: '10 DSA Problems', icon: '🎓', name: 'Way of the Scholar' },
+      { threshold: 50, current: dsaCountNum, label: '50 DSA Problems', icon: '⚔️', name: 'Pattern Warrior' },
+      { threshold: 7, current: dsaStreakCount, label: '7-Day DSA Streak', icon: '👑', name: 'Consistency Crown' },
+      { threshold: 5, current: salahStreakCount, label: '5-Day Salah Streak', icon: '🕌', name: 'Salah Shield' }
+    ];
+    let milestoneNext = { label: 'All milestones reached!', icon: '🏆', name: 'Champion', current: 100, threshold: 100, pct: 100 };
+    for (const m of milestones) {
+      if (m.current < m.threshold) {
+        milestoneNext = { label: m.label, icon: m.icon, name: m.name, current: m.current, threshold: m.threshold, pct: Math.round((m.current / m.threshold) * 100) };
+        break;
+      }
     }
     
     // daysUntilOffer: days until interview window (Oct 1, 2026)
@@ -1039,7 +1062,7 @@ async function computeMotivation(userId, weekStats, dsaCountNum, activeDayCount,
     console.error('Motivation engine error:', err);
     return {
       disciplineScore: 0,
-      milestoneNext: '—',
+      milestoneNext: { label: '—', icon: '🎯', name: 'Loading', current: 0, threshold: 100, pct: 0 },
       daysUntilOffer: 0,
       focusScore: 0,
       weeklyTargetProgress: { solved: 0, targetMin: 15, targetMax: 18, percent: 0, onTrack: false }
