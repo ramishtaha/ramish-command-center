@@ -21,7 +21,7 @@
           <% if (todayProgress.mode_used) { %>
             <span class="mode-badge"><%= todayProgress.mode_used === 'office' ? '🏢 Office' : '🏠 Laptop' %></span>
           <% } %>
-          <a class="logout-link" href="/logout">Sign out</a>
+          <span class="public-badge">PUBLIC PROFILE</span>
         </div>
       </div>
 
@@ -124,6 +124,40 @@
         </div>
       </section>
 
+      <!-- DYNAMIC BAR SELECTOR -->
+      <section class="section" id="bar-selector">
+        <div class="section-title"><span class="icon">🎚️</span> Today's Bar Level</div>
+        <div class="card">
+          <div class="bar-selector">
+            <button class="bar-option <%= !todayProgress.bar_hit || todayProgress.bar_hit === 'none' ? '' : 'sel' %>" data-bar="none" onclick="setBar('none')">
+              <span class="bar-icon">⚪</span><span class="bar-label">Not Set</span>
+            </button>
+            <button class="bar-option <%= todayProgress.bar_hit === 'low' ? 'sel' : '' %>" data-bar="low" onclick="setBar('low')">
+              <span class="bar-icon">🟢</span><span class="bar-label">Low</span><span class="bar-desc">1 DSA + 1 concept + 1 career</span>
+            </button>
+            <button class="bar-option <%= todayProgress.bar_hit === 'high' ? 'sel' : '' %>" data-bar="high" onclick="setBar('high')">
+              <span class="bar-icon">🟡</span><span class="bar-label">High</span><span class="bar-desc">4 DSA + full SB + full career</span>
+            </button>
+            <button class="bar-option <%= todayProgress.bar_hit === 'extra' ? 'sel' : '' %>" data-bar="extra" onclick="setBar('extra')">
+              <span class="bar-icon">🔥</span><span class="bar-label">Extra</span><span class="bar-desc">1 week in 1 day (bank credit)</span>
+            </button>
+            <button class="bar-option <%= todayProgress.bar_hit === 'rest' ? 'sel' : '' %>" data-bar="rest" onclick="setBar('rest')">
+              <span class="bar-icon">😴</span><span class="bar-label">Rest</span><span class="bar-desc">Recovery day (no guilt)</span>
+            </button>
+          </div>
+          <% if (todayProgress.bar_hit === 'extra') { %>
+            <div class="mt bar-banking-info">
+              💡 <strong>Hyperfocus Day!</strong> Extra output banks as credit — future rest days without guilt. You're ahead of pace!
+            </div>
+          <% } %>
+          <% if (todayProgress.bar_hit === 'rest') { %>
+            <div class="mt bar-banking-info rest-info">
+              😴 <strong>Rest Day.</strong> Recovery is part of the process. Streak doesn't break. No guilt.
+            </div>
+          <% } %>
+        </div>
+      </section>
+
       <!-- TODAY'S PLAN -->
       <% if (todayPlan) { %>
       <section class="section" id="today-plan">
@@ -132,6 +166,7 @@
           <div class="plan-bars">
             <div class="plan-bar">🟢 <strong>Low:</strong> 1 DSA + 1 concept + 1 career action</div>
             <div class="plan-bar">🟡 <strong>High:</strong> 4 DSA + full Spring Boot + full career</div>
+            <div class="plan-bar">🔥 <strong>Extra:</strong> 1 week of work in 1 day (bank credit)</div>
           </div>
           <% if (todayPlan.dsa && todayPlan.dsa.length) { %>
             <div class="mt plan-list"><strong>DSA:</strong>
@@ -888,6 +923,16 @@
         html = '<div class="empty-state">No history data available.</div>';
       }
       inner.innerHTML = html;
+    };
+
+    /* ===== Dynamic bar selector (new) ===== */
+    window.setBar = function(level) {
+      var body = new URLSearchParams();
+      body.append('bar_level', level);
+      fetch('/api/bar', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:body.toString() })
+        .then(function(r){ return r.json(); })
+        .then(function(){ toast('✓ Bar set to ' + level); location.reload(); })
+        .catch(function(){ toast('Failed', true); });
     };
 
     /* ===== Quick-edit: today's bar ===== */

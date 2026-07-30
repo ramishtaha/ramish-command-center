@@ -245,6 +245,7 @@ def push_to_heroku():
         "overdue_revisions": overdue,
         "unaided_queue": unaided_queue,
         "today_plan": today_plan,
+        "replace_dsa": True,  # NEW: tell server to delete old DSA before inserting
     }
     
     result = api_post("/api/sync/bulk", payload)

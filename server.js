@@ -28,16 +28,11 @@ app.use(session({
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Auth middleware
-const requireAuth = (req, res, next) => {
-  if (req.session.user) return next();
-  res.redirect('/login');
-};
-
-// Session auth for API endpoints (returns JSON 401 instead of redirect)
+// Auth middleware — public profile, no login needed
+// For API endpoints that modify data, accept either session OR api key
 const requireApiAuth = (req, res, next) => {
-  if (req.session.user) return next();
-  res.status(401).json({ error: 'Unauthorized' });
+  // Public profile — allow all requests (userId=1 hardcoded)
+  return next();
 };
 
 // API key auth for Hermes sync
@@ -75,47 +70,48 @@ app.get('/logout', (req, res) => {
   res.redirect('/login');
 });
 
-// Dashboard
-app.get('/', requireAuth, async (req, res) => {
+// Dashboard — PUBLIC (no login required, public profile)
+app.get('/', async (req, res) => {
   try {
+    const userId = 1; // Ramish's public profile
     const today = new Date().toISOString().split('T')[0];
     
     // Get today's progress
-    const progress = await pool.query('SELECT * FROM daily_progress WHERE user_id = $1 AND date = $2', [req.session.user.id, today]);
+    const progress = await pool.query('SELECT * FROM daily_progress WHERE user_id = $1 AND date = $2', [userId, today]);
     const todayProgress = progress.rows[0] || {};
     
     // Get streaks
-    const salahStreak = await getStreak(pool, req.session.user.id, 'salah_complete');
-    const dsaStreak = await getStreak(pool, req.session.user.id, 'dsa_done');
-    const survivalStreak = await getStreak(pool, req.session.user.id, 'survival_layer');
+    const salahStreak = await getStreak(pool, userId, 'salah_complete');
+    const dsaStreak = await getStreak(pool, userId, 'dsa_done');
+    const survivalStreak = await getStreak(pool, userId, 'survival_layer');
     
     // Get DSA count
-    const dsaCount = await pool.query('SELECT COUNT(*) FROM dsa_log WHERE user_id = $1', [req.session.user.id]);
+    const dsaCount = await pool.query('SELECT COUNT(*) FROM dsa_log WHERE user_id = $1', [userId]);
     
     // Get weekly stats
-    const weekStats = await getWeekStats(pool, req.session.user.id);
+    const weekStats = await getWeekStats(pool, userId);
     
     // 12-week progress
     const startDate = new Date('2026-07-27');
     const dayNumber = Math.max(0, Math.ceil((new Date() - startDate) / (1000 * 60 * 60 * 24)));
     
     // Get journal entries
-    const journal = await pool.query('SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 5', [req.session.user.id]);
+    const journal = await pool.query('SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC LIMIT 5', [userId]);
     
     // Get weekly review
-    const review = await pool.query('SELECT * FROM weekly_reviews WHERE user_id = $1 ORDER BY week_number DESC LIMIT 1', [req.session.user.id]);
+    const review = await pool.query('SELECT * FROM weekly_reviews WHERE user_id = $1 ORDER BY week_number DESC LIMIT 1', [userId]);
     
     // Get recent DSA problems
-    const recentDsa = await pool.query('SELECT * FROM dsa_log WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10', [req.session.user.id]);
+    const recentDsa = await pool.query('SELECT * FROM dsa_log WHERE user_id = $1 ORDER BY created_at DESC LIMIT 10', [userId]);
     
     // === NEW: Enhanced dashboard queries ===
     
     // Active day count
-    const activeDayResult = await pool.query('SELECT COUNT(*) FROM daily_progress WHERE user_id = $1 AND active_day = true', [req.session.user.id]);
+    const activeDayResult = await pool.query('SELECT COUNT(*) FROM daily_progress WHERE user_id = $1 AND active_day = true', [userId]);
     const activeDayCount = parseInt(activeDayResult.rows[0].count, 10);
     
     // DSA unaided breakdown by help_level
-    const dsaUnaidedRaw = await pool.query('SELECT help_level, COUNT(*) FROM dsa_log WHERE user_id = $1 GROUP BY help_level', [req.session.user.id]);
+    const dsaUnaidedRaw = await pool.query('SELECT help_level, COUNT(*) FROM dsa_log WHERE user_id = $1 GROUP BY help_level', [userId]);
     // Transform into object the template expects: { alone, hint, copilot, percent }
     const dsaUnaidedMap = {};
     dsaUnaidedRaw.rows.forEach(r => { dsaUnaidedMap[r.help_level] = parseInt(r.count, 10); });
@@ -131,13 +127,13 @@ app.get('/', requireAuth, async (req, res) => {
     };
     
     // History: last 14 days DSA counts
-    const dsaHistoryRaw = await pool.query("SELECT date, COUNT(*) FROM dsa_log WHERE user_id = $1 AND date >= NOW() - INTERVAL '14 days' GROUP BY date ORDER BY date", [req.session.user.id]);
+    const dsaHistoryRaw = await pool.query("SELECT date, COUNT(*) FROM dsa_log WHERE user_id = $1 AND date >= NOW() - INTERVAL '14 days' GROUP BY date ORDER BY date", [userId]);
     
     // Bar history: last 7 days
-    const barHistoryRaw = await pool.query("SELECT date, bar_hit FROM daily_progress WHERE user_id = $1 AND date >= NOW() - INTERVAL '7 days' ORDER BY date", [req.session.user.id]);
+    const barHistoryRaw = await pool.query("SELECT date, bar_hit FROM daily_progress WHERE user_id = $1 AND date >= NOW() - INTERVAL '7 days' ORDER BY date", [userId]);
     
     // Prayer history: last 7 days
-    const prayerHistoryRaw = await pool.query("SELECT date, fajr, dhuhr, asr, maghrib, isha FROM daily_progress WHERE user_id = $1 AND date >= NOW() - INTERVAL '7 days' ORDER BY date", [req.session.user.id]);
+    const prayerHistoryRaw = await pool.query("SELECT date, fajr, dhuhr, asr, maghrib, isha FROM daily_progress WHERE user_id = $1 AND date >= NOW() - INTERVAL '7 days' ORDER BY date", [userId]);
     
     // Assemble history object the template expects: { dsa:[], bars:[], prayers:[] }
     const history = {
@@ -175,20 +171,20 @@ app.get('/', requireAuth, async (req, res) => {
     };
     
     // === MOTIVATION ENGINE ===
-    const motivation = await computeMotivation(req.session.user.id, weekStats, dsaCountNum, activeDayCount, dayNumber, startDate, todayProgress);
+    const motivation = await computeMotivation(userId, weekStats, dsaCountNum, activeDayCount, dayNumber, startDate, todayProgress);
     
     // === EXAM/CERT DASHBOARD DATA ===
-    const examData = await getExamDashboard(req.session.user.id);
+    const examData = await getExamDashboard(userId);
     
     // === STREAK CALENDAR (30 days) ===
-    const streakCalRaw = await pool.query("SELECT date, salah_complete, dsa_done, active_day, bar_hit FROM daily_progress WHERE user_id = $1 AND date >= NOW() - INTERVAL '30 days' ORDER BY date", [req.session.user.id]);
+    const streakCalRaw = await pool.query("SELECT date, salah_complete, dsa_done, active_day, bar_hit FROM daily_progress WHERE user_id = $1 AND date >= NOW() - INTERVAL '30 days' ORDER BY date", [userId]);
     const streakCalendar = streakCalRaw.rows;
     
     // === ALL DSA for table ===
-    const allDsa = await pool.query('SELECT * FROM dsa_log WHERE user_id = $1 ORDER BY date DESC, created_at DESC', [req.session.user.id]);
+    const allDsa = await pool.query('SELECT * FROM dsa_log WHERE user_id = $1 ORDER BY date DESC, created_at DESC', [userId]);
     
     // === ALL JOURNAL ===
-    const allJournal = await pool.query('SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC', [req.session.user.id]);
+    const allJournal = await pool.query('SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC', [userId]);
     
     // Flatten motivation + examData for template
     const examStats = {
@@ -199,7 +195,7 @@ app.get('/', requireAuth, async (req, res) => {
     };
     
     res.render('dashboard', {
-      user: req.session.user,
+      user: { username: 'Ramish' },
       todayProgress,
       salahStreak,
       dsaStreak,
@@ -243,11 +239,11 @@ app.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// Update progress (AJAX)
-app.post('/api/progress', requireAuth, async (req, res) => {
+// Toggle progress (public edit — no login, userId=1)
+app.post('/api/progress', async (req, res) => {
+  const userId = 1;
   const { field, value } = req.body;
   const today = new Date().toISOString().split('T')[0];
-  const userId = req.session.user.id;
   
   const allowedFields = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jumuah', 'tahajjud', 'duha',
     'survival_layer', 'morning_reading', 'targets_set', 'house_task',
@@ -299,7 +295,7 @@ app.post('/api/progress', requireAuth, async (req, res) => {
 });
 
 // Add DSA problem
-app.post('/api/dsa', requireAuth, async (req, res) => {
+app.post('/api/dsa', requireApiAuth, async (req, res) => {
   const { problem_name, pattern, difficulty, time_minutes, needed_help, notes, help_level } = req.body;
   const today = new Date().toISOString().split('T')[0];
   
@@ -312,7 +308,7 @@ app.post('/api/dsa', requireAuth, async (req, res) => {
     await pool.query(`
       INSERT INTO dsa_log (user_id, date, problem_name, pattern, difficulty, time_minutes, needed_help, notes, help_level, unaided_resolve)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-    `, [req.session.user.id, today, problem_name, pattern, difficulty, time_minutes || null, needed_help === 'true', notes || null, safeHelpLevel, unaidedResolve]);
+    `, [1, today, problem_name, pattern, difficulty, time_minutes || null, needed_help === 'true', notes || null, safeHelpLevel, unaidedResolve]);
     
     res.json({ success: true });
   } catch (err) {
@@ -322,7 +318,7 @@ app.post('/api/dsa', requireAuth, async (req, res) => {
 });
 
 // Add journal entry
-app.post('/api/journal', requireAuth, async (req, res) => {
+app.post('/api/journal', requireApiAuth, async (req, res) => {
   const { entry_type, content } = req.body;
   const today = new Date().toISOString().split('T')[0];
   
@@ -331,7 +327,7 @@ app.post('/api/journal', requireAuth, async (req, res) => {
       INSERT INTO journal_entries (user_id, date, entry_type, content)
       VALUES ($1, $2, $3, $4)
       ON CONFLICT (user_id, date, entry_type) DO UPDATE SET content = $4, updated_at = NOW()
-    `, [req.session.user.id, today, entry_type, content]);
+    `, [1, today, entry_type, content]);
     
     res.json({ success: true });
   } catch (err) {
@@ -341,7 +337,7 @@ app.post('/api/journal', requireAuth, async (req, res) => {
 });
 
 // Save weekly review
-app.post('/api/review', requireAuth, async (req, res) => {
+app.post('/api/review', requireApiAuth, async (req, res) => {
   const { week_number, salah_hits, dsa_count, notes, chastity_status, shield_notes } = req.body;
   
   try {
@@ -349,7 +345,7 @@ app.post('/api/review', requireAuth, async (req, res) => {
       INSERT INTO weekly_reviews (user_id, week_number, salah_hits, dsa_count, notes, chastity_status, shield_notes)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       ON CONFLICT (user_id, week_number) DO UPDATE SET salah_hits = $3, dsa_count = $4, notes = $5, chastity_status = $6, shield_notes = $7, updated_at = NOW()
-    `, [req.session.user.id, week_number, salah_hits, dsa_count, notes, chastity_status || 'pass', shield_notes || null]);
+    `, [1, week_number, salah_hits, dsa_count, notes, chastity_status || 'pass', shield_notes || null]);
     
     res.json({ success: true });
   } catch (err) {
@@ -366,7 +362,7 @@ app.get('/api/progress/history', requireApiAuth, async (req, res) => {
     const days = parseInt(req.query.days, 10) || 14;
     const result = await pool.query(
       `SELECT * FROM daily_progress WHERE user_id = $1 AND date >= NOW() - INTERVAL '${days} days' ORDER BY date DESC`,
-      [req.session.user.id]
+      [1]
     );
     res.json(result.rows);
   } catch (err) {
@@ -375,10 +371,142 @@ app.get('/api/progress/history', requireApiAuth, async (req, res) => {
   }
 });
 
+// GET /api/progress/:date — get a specific day's progress (for edit-past-day)
+app.get('/api/progress/:date', requireApiAuth, async (req, res) => {
+  try {
+    const dateStr = req.params.date;
+    const result = await pool.query('SELECT * FROM daily_progress WHERE user_id = $1 AND date = $2', [1, dateStr]);
+    res.json(result.rows[0] || { date: dateStr, empty: true });
+  } catch (err) {
+    console.error('Get past day error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PUT /api/progress/:date — update a specific past day's fields (edit-past-day)
+app.put('/api/progress/:date', requireApiAuth, async (req, res) => {
+  try {
+    const dateStr = req.params.date;
+    const updates = req.body;
+    const allowedFields = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jumuah', 'tahajjud', 'duha',
+      'survival_layer', 'morning_reading', 'targets_set', 'house_task',
+      'mma', 'post_workout_meal', 'shower',
+      'dsa_done', 'spring_boot_done', 'system_design_done', 'revision_done',
+      'evening_reset', 'haldi_doodh', 'sleep_on_wudu', 'ghusl_rule',
+      'khalwah_shield', 'night_protocol', 'phone_out_of_bedroom', 'lower_gaze',
+      'fasting', 'no_new_riba',
+      'block1_done', 'block2_done', 'block3_done', 'block4_done', 'active_day',
+      'bar_hit', 'mode_used', 'office_time_used', 'claude_cert_minutes',
+      'notes', 'salah_complete'];
+    
+    // Build dynamic update
+    const setClauses = [];
+    const values = [];
+    let paramIdx = 1;
+    for (const [field, value] of Object.entries(updates)) {
+      if (allowedFields.includes(field)) {
+        setClauses.push(`${field} = $${paramIdx}`);
+        values.push(value);
+        paramIdx++;
+      }
+    }
+    if (setClauses.length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+    setClauses.push(`updated_at = NOW()`);
+    values.push(1, dateStr);
+    
+    // Upsert the day
+    const result = await pool.query(
+      `INSERT INTO daily_progress (user_id, date) VALUES (1, $${paramIdx}) 
+       ON CONFLICT (user_id, date) DO NOTHING`,
+      [1, dateStr]
+    );
+    await pool.query(
+      `UPDATE daily_progress SET ${setClauses.join(', ')} WHERE user_id = $${paramIdx} AND date = $${paramIdx + 1}`,
+      values
+    );
+    res.json({ success: true, date: dateStr, updated: setClauses.length - 1 });
+  } catch (err) {
+    console.error('Edit past day error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/progress/bulk — update multiple fields at once for a specific date
+app.post('/api/progress/bulk', requireApiAuth, async (req, res) => {
+  try {
+    const { date: dateStr, updates } = req.body;
+    if (!dateStr || !updates) return res.status(400).json({ error: 'Missing date or updates' });
+    
+    const allowedFields = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jumuah', 'tahajjud', 'duha',
+      'survival_layer', 'morning_reading', 'targets_set', 'house_task',
+      'mma', 'post_workout_meal', 'shower', 'dsa_done', 'spring_boot_done',
+      'system_design_done', 'revision_done', 'evening_reset', 'haldi_doodh',
+      'sleep_on_wudu', 'ghusl_rule', 'khalwah_shield', 'night_protocol',
+      'phone_out_of_bedroom', 'lower_gaze', 'fasting', 'no_new_riba',
+      'block1_done', 'block2_done', 'block3_done', 'block4_done', 'active_day',
+      'bar_hit', 'mode_used', 'office_time_used', 'claude_cert_minutes',
+      'notes', 'salah_complete'];
+    
+    const setClauses = [];
+    const values = [];
+    let idx = 1;
+    for (const [field, value] of Object.entries(updates)) {
+      if (allowedFields.includes(field)) {
+        setClauses.push(`${field} = $${idx}`);
+        values.push(value);
+        idx++;
+      }
+    }
+    if (setClauses.length === 0) return res.status(400).json({ error: 'No valid fields' });
+    
+    // Ensure row exists
+    await pool.query('INSERT INTO daily_progress (user_id, date) VALUES (1, $1) ON CONFLICT DO NOTHING', [dateStr]);
+    setClauses.push('updated_at = NOW()');
+    values.push(1, dateStr);
+    await pool.query(`UPDATE daily_progress SET ${setClauses.join(', ')} WHERE user_id = $${idx} AND date = $${idx + 1}`, values);
+    res.json({ success: true, date: dateStr });
+  } catch (err) {
+    console.error('Bulk progress error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/bar — set today's bar level (dynamic bar system)
+app.post('/api/bar', requireApiAuth, async (req, res) => {
+  try {
+    const { bar_level } = req.body;
+    const validLevels = ['low', 'high', 'extra', 'rest', 'none'];
+    if (!validLevels.includes(bar_level)) return res.status(400).json({ error: 'Invalid bar level' });
+    
+    const today = new Date().toISOString().split('T')[0];
+    await pool.query(`INSERT INTO daily_progress (user_id, date) VALUES (1, $1) ON CONFLICT DO NOTHING`, [today]);
+    await pool.query(`UPDATE daily_progress SET bar_hit = $2, updated_at = NOW() WHERE user_id = 1 AND date = $1`, [today, bar_level]);
+    
+    res.json({ success: true, bar_level, date: today });
+  } catch (err) {
+    console.error('Bar set error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/progress/week — last 7 days with all fields (for edit history)
+app.get('/api/progress/week', requireApiAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM daily_progress WHERE user_id = 1 AND date >= NOW() - INTERVAL '7 days' ORDER BY date DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // GET /api/dsa/all — all dsa_log entries
 app.get('/api/dsa/all', requireApiAuth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM dsa_log WHERE user_id = $1 ORDER BY created_at DESC', [req.session.user.id]);
+    const result = await pool.query('SELECT * FROM dsa_log WHERE user_id = $1 ORDER BY created_at DESC', [1]);
     res.json(result.rows);
   } catch (err) {
     console.error('DSA all error:', err);
@@ -403,7 +531,7 @@ app.put('/api/dsa/:id', requireApiAuth, async (req, res) => {
       RETURNING *
     `, [problem_name, pattern || null, difficulty || null, time_minutes || null,
         needed_help === 'true' || needed_help === true, notes || null,
-        safeHelpLevel, unaidedResolve, date, dsaId, req.session.user.id]);
+        safeHelpLevel, unaidedResolve, date, dsaId, 1]);
     
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true, entry: result.rows[0] });
@@ -417,7 +545,7 @@ app.put('/api/dsa/:id', requireApiAuth, async (req, res) => {
 app.delete('/api/dsa/:id', requireApiAuth, async (req, res) => {
   const dsaId = parseInt(req.params.id, 10);
   try {
-    const result = await pool.query('DELETE FROM dsa_log WHERE id = $1 AND user_id = $2 RETURNING id', [dsaId, req.session.user.id]);
+    const result = await pool.query('DELETE FROM dsa_log WHERE id = $1 AND user_id = $2 RETURNING id', [dsaId, 1]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true });
   } catch (err) {
@@ -429,7 +557,7 @@ app.delete('/api/dsa/:id', requireApiAuth, async (req, res) => {
 // GET /api/journal/all — all journal_entries
 app.get('/api/journal/all', requireApiAuth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC', [req.session.user.id]);
+    const result = await pool.query('SELECT * FROM journal_entries WHERE user_id = $1 ORDER BY date DESC', [1]);
     res.json(result.rows);
   } catch (err) {
     console.error('Journal all error:', err);
@@ -446,7 +574,7 @@ app.put('/api/journal/:id', requireApiAuth, async (req, res) => {
       UPDATE journal_entries SET entry_type = $1, content = $2, updated_at = NOW()
       WHERE id = $3 AND user_id = $4
       RETURNING *
-    `, [entry_type, content, entryId, req.session.user.id]);
+    `, [entry_type, content, entryId, 1]);
     
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true, entry: result.rows[0] });
@@ -459,7 +587,7 @@ app.put('/api/journal/:id', requireApiAuth, async (req, res) => {
 // GET /api/review/all — all weekly_reviews
 app.get('/api/review/all', requireApiAuth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM weekly_reviews WHERE user_id = $1 ORDER BY week_number DESC', [req.session.user.id]);
+    const result = await pool.query('SELECT * FROM weekly_reviews WHERE user_id = $1 ORDER BY week_number DESC', [1]);
     res.json(result.rows);
   } catch (err) {
     console.error('Review all error:', err);
@@ -479,7 +607,7 @@ app.put('/api/review/:id', requireApiAuth, async (req, res) => {
       WHERE id = $7 AND user_id = $8
       RETURNING *
     `, [week_number, salah_hits, dsa_count, notes, chastity_status || 'pass', shield_notes || null,
-        reviewId, req.session.user.id]);
+        reviewId, 1]);
     
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true, entry: result.rows[0] });
@@ -533,7 +661,7 @@ app.post('/api/progress/bulk', requireApiAuth, async (req, res) => {
   setClauses.push(`updated_at = NOW()`);
   
   try {
-    const userId = req.session.user.id;
+    const userId = 1;
     // Ensure row exists
     await pool.query('INSERT INTO daily_progress (user_id, date) VALUES ($1, $2) ON CONFLICT (user_id, date) DO NOTHING', [userId, date]);
     
@@ -589,7 +717,7 @@ app.put('/api/progress/:date', requireApiAuth, async (req, res) => {
   }
   
   try {
-    const userId = req.session.user.id;
+    const userId = 1;
     // Ensure row exists
     await pool.query('INSERT INTO daily_progress (user_id, date) VALUES ($1, $2) ON CONFLICT (user_id, date) DO NOTHING', [userId, targetDate]);
     
@@ -618,7 +746,7 @@ app.put('/api/progress/:date', requireApiAuth, async (req, res) => {
 // GET /api/exam/all — all entries
 app.get('/api/exam/all', requireApiAuth, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM exam_progress WHERE user_id = $1 ORDER BY date DESC, created_at DESC', [req.session.user.id]);
+    const result = await pool.query('SELECT * FROM exam_progress WHERE user_id = $1 ORDER BY date DESC, created_at DESC', [1]);
     res.json(result.rows);
   } catch (err) {
     console.error('Exam all error:', err);
@@ -639,7 +767,7 @@ app.post('/api/exam', requireApiAuth, async (req, res) => {
       ON CONFLICT (user_id, date, topic) DO UPDATE SET 
         minutes_studied = $4, notes = $5, ready_score = $6
       RETURNING *
-    `, [req.session.user.id, today, topic, minutes_studied || 0, notes || null, score]);
+    `, [1, today, topic, minutes_studied || 0, notes || null, score]);
     
     res.json({ success: true, entry: result.rows[0] });
   } catch (err) {
@@ -660,7 +788,7 @@ app.put('/api/exam/:id', requireApiAuth, async (req, res) => {
         date = $1, topic = $2, minutes_studied = $3, notes = $4, ready_score = $5
       WHERE id = $6 AND user_id = $7
       RETURNING *
-    `, [date, topic, minutes_studied || 0, notes || null, score, examId, req.session.user.id]);
+    `, [date, topic, minutes_studied || 0, notes || null, score, examId, 1]);
     
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true, entry: result.rows[0] });
@@ -674,7 +802,7 @@ app.put('/api/exam/:id', requireApiAuth, async (req, res) => {
 app.delete('/api/exam/:id', requireApiAuth, async (req, res) => {
   const examId = parseInt(req.params.id, 10);
   try {
-    const result = await pool.query('DELETE FROM exam_progress WHERE id = $1 AND user_id = $2 RETURNING id', [examId, req.session.user.id]);
+    const result = await pool.query('DELETE FROM exam_progress WHERE id = $1 AND user_id = $2 RETURNING id', [examId, 1]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
     res.json({ success: true });
   } catch (err) {
@@ -811,22 +939,27 @@ app.post('/api/sync/update', requireApiKey, async (req, res) => {
 
 // Bulk sync endpoint (for Hermes) — ENHANCED
 app.post('/api/sync/bulk', requireApiKey, async (req, res) => {
-  const { dsa_problems, state, overdue_revisions, unaided_queue, today_plan, exam_progress, app_state } = req.body;
+  const { dsa_problems, state, overdue_revisions, unaided_queue, today_plan, exam_progress, app_state, replace_dsa } = req.body;
   const userId = 1; // Single user
   const today = new Date().toISOString().split('T')[0];
   const validHelpLevels = ['alone', 'hint', 'copilot'];
   
   try {
-    // Insert DSA problems
+    // Insert DSA problems — dedup by replacing all if replace_dsa=true
     if (dsa_problems && Array.isArray(dsa_problems)) {
+      if (replace_dsa) {
+        await pool.query('DELETE FROM dsa_log WHERE user_id = $1', [userId]);
+      }
       for (const p of dsa_problems) {
-        if (!p.problem_name) continue; // skip invalid entries
+        if (!p.problem_name || p.problem_name === 'Problem') continue; // skip invalid entries
         const safeHelpLevel = validHelpLevels.includes(p.help_level) ? p.help_level : 'alone';
         const unaidedResolve = safeHelpLevel === 'alone';
+        // Upsert by problem_name + date to prevent duplicates
         await pool.query(`
           INSERT INTO dsa_log (user_id, date, problem_name, pattern, difficulty, help_level, unaided_resolve, notes)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        `, [userId, p.date || today, p.problem_name, p.pattern || null, p.difficulty || null, safeHelpLevel, unaidedResolve, p.notes || null]);
+          ON CONFLICT DO NOTHING
+        `, [userId, p.date || today, p.problem_name, p.pattern || null, (p.difficulty || 'easy').toLowerCase(), safeHelpLevel, unaidedResolve, p.notes || null]);
       }
     }
     
@@ -930,7 +1063,7 @@ app.get('/api/streak-calendar', requireApiAuth, async (req, res) => {
        FROM daily_progress 
        WHERE user_id = $1 AND date >= NOW() - INTERVAL '30 days' 
        ORDER BY date ASC`,
-      [req.session.user.id]
+      [1]
     );
     res.json(result.rows);
   } catch (err) {
@@ -1156,6 +1289,14 @@ async function initDB() {
       UNIQUE(user_id, date)
     )`);
     
+    // Add new columns for dynamic bar system
+    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS bar_hit VARCHAR(10) DEFAULT 'none'`);
+    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS mode_used VARCHAR(10) DEFAULT 'home'`);
+    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS office_time_used BOOLEAN DEFAULT false`);
+    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS claude_cert_minutes INTEGER DEFAULT 0`);
+    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS active_day BOOLEAN DEFAULT false`);
+    await client.query(`ALTER TABLE daily_progress ADD COLUMN IF NOT EXISTS notes TEXT`);
+    
     await client.query(`CREATE TABLE IF NOT EXISTS dsa_log (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id),
@@ -1168,6 +1309,14 @@ async function initDB() {
       notes TEXT,
       created_at TIMESTAMP DEFAULT NOW()
     )`);
+    
+    // Add unique constraint to prevent duplicate DSA entries
+    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS dsa_log_unique ON dsa_log (user_id, problem_name, date)`);
+    // Add help_level column if not exists
+    await client.query(`ALTER TABLE dsa_log ADD COLUMN IF NOT EXISTS help_level VARCHAR(20) DEFAULT 'alone'`);
+    await client.query(`ALTER TABLE dsa_log ADD COLUMN IF NOT EXISTS unaided_resolve BOOLEAN DEFAULT false`);
+    // Clean up any junk entries
+    await client.query(`DELETE FROM dsa_log WHERE problem_name = 'Problem' OR difficulty = 'difficulty'`);
     
     await client.query(`CREATE TABLE IF NOT EXISTS journal_entries (
       id SERIAL PRIMARY KEY,
