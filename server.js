@@ -157,7 +157,7 @@ app.get('/', requireAuth, async (req, res) => {
     const overdueRevisions = appStateMap.overdue_revisions || [];
     const unaidedQueue = appStateMap.unaided_queue || [];
     const appState = appStateRaw.rows;
-    const settings = appStateMap.settings || null;
+    const settings = appStateMap.settings || { quotes_toggle: true, chart_range: 14, dua_mode: 'none', learning_blocks: ['DSA', 'Spring Boot', 'System Design', 'Revision'] };
     
     // Projection
     const dsaCountNum = parseInt(dsaCount.rows[0].count, 10);
