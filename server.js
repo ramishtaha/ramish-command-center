@@ -48,6 +48,60 @@ const requireApiKey = (req, res, next) => {
   res.status(401).json({ error: 'Unauthorized' });
 };
 
+// ============= HERMES DASHBOARD REVERSE PROXY =============
+// Proxies /hermes/* → VPS Hermes dashboard (http://64.227.163.70:9119)
+// Sends X-Forwarded-Prefix so the dashboard SPA prefixes all asset/API URLs.
+const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middleware');
+
+const HERMES_VPS_URL = process.env.HERMES_VPS_URL || 'http://64.227.163.70:9119';
+
+const hermesProxy = createProxyMiddleware({
+  target: HERMES_VPS_URL,
+  changeOrigin: true,
+  pathRewrite: { '^/hermes': '' },  // strip /hermes prefix before forwarding
+  ws: true,                         // WebSocket support for streaming chat
+  selfHandleResponse: true,        // we intercept responses to rewrite paths
+  onProxyReq: (proxyReq, req, res) => {
+    // Tell Hermes dashboard to prefix all URLs with /hermes
+    proxyReq.setHeader('X-Forwarded-Prefix', '/hermes');
+  },
+  onProxyRes: responseInterceptor(async (buffer, proxyRes, req, res) => {
+    // Rewrite Location header for redirects (login, logout, OAuth callbacks)
+    const location = proxyRes.headers['location'];
+    if (location && location.startsWith('/')) {
+      res.setHeader('location', '/hermes' + location);
+    }
+    // Rewrite Set-Cookie Path attributes so cookies are scoped to /hermes
+    const setCookie = proxyRes.headers['set-cookie'];
+    if (setCookie) {
+      res.setHeader('set-cookie', setCookie.map(c =>
+        c.replace(/Path=\//gi, 'Path=/hermes')
+      ));
+    }
+    // Rewrite HTML body: fix hardcoded paths in the login page
+    const ct = proxyRes.headers['content-type'] || '';
+    if (ct.includes('text/html')) {
+      let body = buffer.toString('utf8');
+      // Rewrite fetch('/auth/password-login') → fetch('/hermes/auth/password-login')
+      body = body.replace(/fetch\(\s*['"]\/auth\/password-login['"]/g, "fetch('/hermes/auth/password-login'");
+      // Rewrite href="/auth/login → href="/hermes/auth/login
+      body = body.replace(/href="\/auth\/login/g, 'href="/hermes/auth/login');
+      // Rewrite window.location.assign('/') → window.location.assign('/hermes/')
+      body = body.replace(/window\.location\.assign\(\s*['"]\/['"]\s*\)/g, "window.location.assign('/hermes/')");
+      // Rewrite window.location.assign(data.next || '/') — if next is empty, default to /hermes/
+      body = body.replace(/window\.location\.assign\(\(data && data\.next\) \|\| '\/'\)/g, "window.location.assign((data && data.next ? '/hermes' + data.next : '/hermes/'))");
+      // Rewrite static asset URLs in login page CSS
+      body = body.replace(/url\(\s*\/fonts\//g, 'url(/hermes/fonts/');
+      body = body.replace(/url\(\s*\/ds-assets\//g, 'url(/hermes/ds-assets/');
+      return Buffer.from(body, 'utf8');
+    }
+    return buffer;
+  }),
+});
+
+// Mount the proxy — must be before other routes
+app.use('/hermes', hermesProxy);
+
 // ============= ROUTES =============
 
 // Verify edit token (for frontend auth check)
