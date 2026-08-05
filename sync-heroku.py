@@ -20,7 +20,7 @@ import urllib.request
 import urllib.error
 
 # ─── Config ───
-HEROKU_URL = "https://ramish-command-center-f4bee27fd546.herokuapp.com"
+HEROKU_URL = "https://ramish-profile-d5672b6913c6.herokuapp.com"
 API_KEY = os.environ.get("COMMAND_CENTER_API_KEY", "hermes-sync-ramish-2026")
 TRACKER_DIR = "/root/career-switch-plan/tracker"
 SESSION_STATE = "/root/career-switch-plan/session-state.md"
